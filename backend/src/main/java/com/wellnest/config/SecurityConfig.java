@@ -67,18 +67,31 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/blogs/**").permitAll()
-                .requestMatchers("/api/trainers/**").permitAll()
-                .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
-                // Admin only
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                // Trainer endpoints
-                .requestMatchers("/api/trainer/**").hasAnyRole("TRAINER", "ADMIN")
-                // All other endpoints require authentication
-                .anyRequest().authenticated()
-            );
+
+   
+    // Public endpoints
+    .requestMatchers("/api/auth/**").permitAll()
+    .requestMatchers("/api/blogs/**").permitAll()
+    .requestMatchers("/api/trainers/**").permitAll()
+    .requestMatchers("/api/trainer-reviews/**").permitAll()
+    .requestMatchers("/api/recommendations/**").permitAll()
+    .requestMatchers("/api/ai-coach/**").permitAll()
+
+    // ⭐ VERY IMPORTANT (for blog images)
+    .requestMatchers("/uploads/**").permitAll()
+
+    .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
+
+    // Admin only
+    .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+    // Trainer endpoints
+    .requestMatchers("/api/trainer/**").hasAnyRole("TRAINER", "ADMIN")
+
+    .requestMatchers("/api/trainer-sessions/**").authenticated()
+
+    .anyRequest().authenticated()
+);
 
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);

@@ -13,28 +13,47 @@ import java.util.Map;
 @Builder
 public class AnalyticsDto {
 
-    // Summary cards
+    // ================= SUMMARY CARDS =================
+
     private Double avgSleepHours;
     private Integer totalCaloriesBurned;
     private Integer totalCaloriesConsumed;
     private Integer totalWorkoutMinutes;
     private Integer workoutCount;
-
-    // Mood / hydration (mocked from external API)
-    private String moodStatus;
+    private Integer todayCaloriesBurned;
+    private Double todayHydrationLiters;
     private Double hydrationLiters;
     private Integer stepsToday;
 
-    // Weekly workout data: [{day: "Mon", calories: 350, duration: 45}, ...]
+    // ================= HEALTH SCORE =================
+
+    private Integer healthScore;
+    private String healthInsight;
+
+    // ================= MOOD =================
+
+    private String moodStatus;
+
+    // ================= STREAK DATA =================
+
+    private Integer currentStreak;
+
+    private List<Boolean> weeklyStreak;
+
+    private List<Boolean> monthlyStreak;
+
+    // ================= WEEKLY DATA =================
+
     private List<Map<String, Object>> weeklyWorkoutData;
 
-    // Weekly sleep data: [{day: "Mon", hours: 7.5}, ...]
     private List<Map<String, Object>> weeklySleepData;
 
-    // Monthly calorie trend: [{week: "Week 1", calories: 2200}, ...]
+    // ================= MONTHLY DATA =================
+
     private List<Map<String, Object>> monthlyCalorieTrend;
 
-    // BMI info
+    // ================= BMI =================
+
     private Double bmi;
     private String bmiCategory;
 }

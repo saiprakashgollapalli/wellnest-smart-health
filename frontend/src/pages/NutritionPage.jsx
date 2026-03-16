@@ -4,191 +4,456 @@ import { nutritionService } from '../services/api';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
 
-const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snack', 'Pre-Workout', 'Post-Workout'];
-const EMPTY = { mealType: 'Breakfast', foodItems: '', caloriesConsumed: '', proteinGrams: '', carbsGrams: '', fatGrams: '', date: new Date().toISOString().split('T')[0] };
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from "recharts";
+
+const MEAL_TYPES = [
+  'Breakfast',
+  'Lunch',
+  'Dinner',
+  'Snack',
+  'Pre-Workout',
+  'Post-Workout'
+];
+
+const EMPTY = {
+  mealType: 'Breakfast',
+  foodItems: '',
+  quantity: '',
+  unit: 'g',
+  date: new Date().toISOString().split('T')[0]
+};
 
 export default function NutritionPage() {
-  const [logs,     setLogs]    = useState([]);
-  const [loading,  setLoading] = useState(true);
+
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form,     setForm]    = useState(EMPTY);
-  const [errors,   setErrors]  = useState({});
-  const [editId,   setEditId]  = useState(null);
-  const [saving,   setSaving]  = useState(false);
+  const [form, setForm] = useState(EMPTY);
+  const [editId, setEditId] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => { fetch(); }, []);
+  const [showAnalytics,setShowAnalytics] = useState(false);
 
-  const fetch = () =>
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  const fetchLogs = () =>
     nutritionService.getAll()
       .then(r => setLogs(r.data))
       .catch(() => toast.error('Failed to load nutrition logs'))
       .finally(() => setLoading(false));
 
-  const validate = () => {
-    const e = {};
-    if (!form.foodItems.trim()) e.foodItems = 'Food items are required';
-    if (!form.date) e.date = 'Date is required';
-    return e;
-  };
+  const groupedLogs = logs.reduce((acc, log) => {
+    const key = `${log.date}-${log.mealType}`;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(log);
+    return acc;
+  }, {});
 
-  const handleSubmit = async (ev) => {
-    ev.preventDefault();
-    const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setSaving(true);
+
     try {
+
+      let convertedQuantity = Number(form.quantity) || 0;
+
+      if (form.unit === 'pcs') {
+        convertedQuantity = convertedQuantity * 50;
+      }
+
       const payload = {
-        ...form,
-        caloriesConsumed: parseInt(form.caloriesConsumed) || 0,
-        proteinGrams: parseFloat(form.proteinGrams) || 0,
-        carbsGrams: parseFloat(form.carbsGrams) || 0,
-        fatGrams: parseFloat(form.fatGrams) || 0,
+        mealType: form.mealType,
+        foodItems: form.foodItems,
+        quantityInGrams: convertedQuantity,
+        date: form.date
       };
+
       if (editId) {
         await nutritionService.update(editId, payload);
         toast.success('Updated!');
       } else {
         await nutritionService.create(payload);
-        toast.success('Meal logged! 🥗');
+        toast.success('Food added 🥗');
       }
-      setShowForm(false); setForm(EMPTY); setEditId(null); setErrors({}); fetch();
-    } catch { toast.error('Failed to save'); }
-    finally { setSaving(false); }
+
+      setShowForm(false);
+      setForm(EMPTY);
+      setEditId(null);
+      fetchLogs();
+
+    } catch {
+      toast.error('Failed to save');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEdit = (l) => {
-    setForm({ mealType: l.mealType, foodItems: l.foodItems, caloriesConsumed: l.caloriesConsumed || '', proteinGrams: l.proteinGrams || '', carbsGrams: l.carbsGrams || '', fatGrams: l.fatGrams || '', date: l.date });
-    setEditId(l.id); setShowForm(true); setErrors({});
+    setForm({
+      mealType: l.mealType,
+      foodItems: l.foodItems,
+      quantity: l.quantityInGrams,
+      unit: 'g',
+      date: l.date
+    });
+    setEditId(l.id);
+    setShowForm(true);
   };
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this entry?')) return;
-    try { await nutritionService.delete(id); toast.success('Deleted'); fetch(); }
-    catch { toast.error('Failed to delete'); }
+    try {
+      await nutritionService.delete(id);
+      toast.success('Deleted');
+      fetchLogs();
+    } catch {
+      toast.error('Failed to delete');
+    }
   };
 
-  const MACRO_COLORS = { protein: '#38bdf8', carbs: '#fb923c', fat: '#f472b6' };
+  const today = new Date().toISOString().split('T')[0];
+  const todayMeals = logs.filter(l => l.date === today);
+
+  const todayCalories = todayMeals.reduce((s, l) => s + (l.caloriesConsumed || 0), 0);
+  const todayProtein = todayMeals.reduce((s, l) => s + (l.proteinGrams || 0), 0);
+  const todayCarbs = todayMeals.reduce((s, l) => s + (l.carbsGrams || 0), 0);
+  const todayFat = todayMeals.reduce((s, l) => s + (l.fatGrams || 0), 0);
+
+  const analyticsData = logs.map(l => ({
+    date: l.date,
+    calories: l.caloriesConsumed || 0,
+    protein: l.proteinGrams || 0,
+    carbs: l.carbsGrams || 0,
+    fat: l.fatGrams || 0
+  }));
+
+  const macroData = [
+    { name: "Protein", value: todayProtein },
+    { name: "Carbs", value: todayCarbs },
+    { name: "Fat", value: todayFat }
+  ];
+
+  const COLORS = ["#10b981","#6366f1","#f59e0b"];
 
   return (
     <>
-      <Navbar />
-      <div style={styles.page} className="page-enter">
-        <div style={styles.container}>
-          <div style={styles.header}>
+      <div className="px-[24px] py-[32px]">
+
+        <div className="max-w-[900px] mx-auto flex flex-col gap-[24px]">
+
+          {/* HEADER */}
+          <div className="flex justify-between items-center">
+
             <div>
-              <h1 style={styles.title}><FiCoffee style={{ color: 'var(--emerald)' }} /> Nutrition Log</h1>
-              <p style={styles.sub}>Track your daily meals and macros</p>
+              <h1 className="text-[1.8rem] flex items-center gap-[10px]">
+                <FiCoffee className="text-[var(--emerald)]" />
+                Nutrition Log
+              </h1>
+
+              <p className="text-[var(--text-secondary)]">
+                Add each food item separately. Items under same meal are grouped automatically.
+              </p>
             </div>
-            <button className="btn-primary" onClick={() => { setShowForm(true); setForm(EMPTY); setEditId(null); }}>
-              <FiPlus /> Log Meal
-            </button>
+
+            <div className="flex gap-[12px]">
+
+              <button
+                className="btn-ghost"
+                onClick={()=>setShowAnalytics(prev=>!prev)}
+              >
+               📊 View Analytics
+              </button>
+
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  setShowForm(true);
+                  setForm(EMPTY);
+                  setEditId(null);
+                }}
+              >
+                <FiPlus /> Add Food
+              </button>
+
+            </div>
+
           </div>
 
+          {/* SUMMARY */}
+          <div className="grid grid-cols-1 gap-[16px]">
+
+            <div className="bg-[var(--bg-card)] p-[20px] rounded-[12px] border border-[var(--border)]">
+
+              <h4>Today</h4>
+
+              <p className="text-[1.6rem] font-bold text-[var(--emerald)]">
+                {todayCalories} kcal
+              </p>
+
+              <p className="text-[0.85rem] text-[var(--text-muted)]">
+                P {todayProtein}g · C {todayCarbs}g · F {todayFat}g
+              </p>
+
+            </div>
+
+          </div>
+
+          {/* ANALYTICS */}
+          {showAnalytics && (
+
+            <div className="bg-[var(--bg-card)] p-[24px] rounded-[12px] border border-[var(--border)] flex flex-col gap-[24px]">
+
+              <h3 className="text-[1.2rem] font-semibold">
+                Nutrition Analytics
+              </h3>
+
+              <div className="grid md:grid-cols-2 gap-[24px]">
+
+                <div className="h-[260px]">
+
+                  <p className="text-[var(--text-muted)] mb-[8px]">
+                    Calories Trend
+                  </p>
+
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={analyticsData}>
+                      <XAxis dataKey="date" stroke="var(--text-muted)" />
+                      <YAxis stroke="var(--text-muted)" />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="calories" stroke="#10b981" strokeWidth={3}/>
+                    </LineChart>
+                  </ResponsiveContainer>
+
+                </div>
+
+                <div className="h-[260px]">
+
+                  <p className="text-[var(--text-muted)] mb-[8px]">
+                    Today's Macros
+                  </p>
+
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={macroData}
+                        dataKey="value"
+                        nameKey="name"
+                        outerRadius={80}
+                        label
+                      >
+                        {macroData.map((entry,index)=>(
+                          <Cell key={index} fill={COLORS[index]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          )}
+
+          {/* FORM */}
           {showForm && (
-            <div style={styles.formCard}>
-              <h3 style={styles.formTitle}>{editId ? 'Edit Meal' : 'Log Meal'}</h3>
-              <form onSubmit={handleSubmit} style={styles.form} noValidate>
-                <div style={styles.grid2}>
-                  <div className="form-group">
-                    <label>Meal Type</label>
-                    <select value={form.mealType} onChange={e => setForm(f => ({ ...f, mealType: e.target.value }))}>
-                      {MEAL_TYPES.map(t => <option key={t}>{t}</option>)}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Date</label>
-                    <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-                    {errors.date && <span className="form-error">{errors.date}</span>}
-                  </div>
+            <div className="bg-[var(--bg-card)] p-[24px] rounded-[12px] border border-[var(--border)]">
+
+              <h3>{editId ? 'Edit Food Item' : 'Add Food Item'}</h3>
+
+              <form onSubmit={handleSubmit} className="flex flex-col gap-[16px]">
+
+                <div className="grid grid-cols-2 gap-[16px]">
+
+                  <select
+                    value={form.mealType}
+                    onChange={e => setForm(f => ({ ...f, mealType: e.target.value }))}
+                  >
+                    {MEAL_TYPES.map(t => (
+                      <option key={t}>{t}</option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="date"
+                    value={form.date}
+                    onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                  />
+
                 </div>
-                <div className="form-group">
-                  <label>Food Items</label>
-                  <textarea rows="2" placeholder="e.g., Oatmeal with banana, 2 eggs, orange juice" value={form.foodItems} onChange={e => setForm(f => ({ ...f, foodItems: e.target.value }))} style={{ resize: 'vertical' }} />
-                  {errors.foodItems && <span className="form-error">{errors.foodItems}</span>}
+
+                <input
+                  type="text"
+                  placeholder="Food Name"
+                  required
+                  value={form.foodItems}
+                  onChange={e => setForm(f => ({ ...f, foodItems: e.target.value }))}
+                />
+
+                <div className="grid grid-cols-2 gap-[16px]">
+
+                  <input
+                    type="number"
+                    placeholder="Quantity"
+                    required
+                    value={form.quantity}
+                    onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
+                  />
+
+                  <select
+                    value={form.unit}
+                    onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
+                  >
+                    <option value="g">Grams (g)</option>
+                    <option value="ml">Milliliters (ml)</option>
+                    <option value="pcs">Pieces</option>
+                  </select>
+
                 </div>
-                <div style={styles.grid4}>
-                  <div className="form-group">
-                    <label>Calories (kcal)</label>
-                    <input type="number" placeholder="450" value={form.caloriesConsumed} onChange={e => setForm(f => ({ ...f, caloriesConsumed: e.target.value }))} min="0" />
-                  </div>
-                  <div className="form-group">
-                    <label>Protein (g)</label>
-                    <input type="number" placeholder="25" value={form.proteinGrams} onChange={e => setForm(f => ({ ...f, proteinGrams: e.target.value }))} step="0.1" min="0" />
-                  </div>
-                  <div className="form-group">
-                    <label>Carbs (g)</label>
-                    <input type="number" placeholder="60" value={form.carbsGrams} onChange={e => setForm(f => ({ ...f, carbsGrams: e.target.value }))} step="0.1" min="0" />
-                  </div>
-                  <div className="form-group">
-                    <label>Fat (g)</label>
-                    <input type="number" placeholder="15" value={form.fatGrams} onChange={e => setForm(f => ({ ...f, fatGrams: e.target.value }))} step="0.1" min="0" />
-                  </div>
+
+                <div className="flex justify-end gap-[12px]">
+
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => setShowForm(false)}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                  >
+                    {editId ? 'Update' : 'Add'}
+                  </button>
+
                 </div>
-                <div style={styles.formActions}>
-                  <button type="button" className="btn-ghost" onClick={() => { setShowForm(false); setErrors({}); }}>Cancel</button>
-                  <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Saving…' : editId ? 'Update' : 'Log Meal'}</button>
-                </div>
+
               </form>
+
             </div>
           )}
 
-          {loading ? <div style={{ textAlign: 'center', padding: '60px 0' }}><div className="spinner" /></div>
-          : logs.length === 0 ? (
-            <div className="empty-state"><FiCoffee size={48} /><h3>No meals logged</h3><p>Start tracking your nutrition today!</p></div>
-          ) : (
-            <div style={styles.list}>
-              {logs.map(l => (
-                <div key={l.id} style={styles.logCard}>
-                  <div style={styles.logHeader}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span className="badge badge-blue">{l.mealType}</span>
-                      <span style={styles.date}>{l.date}</span>
-                    </div>
-                    <span style={styles.calories}>{l.caloriesConsumed || 0} kcal</span>
-                  </div>
-                  <p style={styles.foodItems}>{l.foodItems}</p>
-                  {(l.proteinGrams || l.carbsGrams || l.fatGrams) && (
-                    <div style={styles.macros}>
-                      {[['Protein', l.proteinGrams, MACRO_COLORS.protein], ['Carbs', l.carbsGrams, MACRO_COLORS.carbs], ['Fat', l.fatGrams, MACRO_COLORS.fat]].map(([name, val, color]) => (
-                        <span key={name} style={{ ...styles.macro, color, background: color + '18' }}>
-                          {name}: {val || 0}g
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div style={styles.actions}>
-                    <button className="btn-ghost" style={{ padding: '6px 12px', fontSize: '0.82rem' }} onClick={() => handleEdit(l)}><FiEdit2 /> Edit</button>
-                    <button className="btn-danger" onClick={() => handleDelete(l.id)}><FiTrash2 /> Delete</button>
-                  </div>
-                </div>
-              ))}
+          {/* LIST */}
+          {loading ? (
+            <div className="text-center py-[60px]">
+              <div className="spinner" />
             </div>
+          ) : Object.keys(groupedLogs).length === 0 ? (
+
+            <div className="text-center py-[60px] text-[var(--text-muted)]">
+
+              <FiCoffee size={48} />
+
+              <h3>No meals logged</h3>
+
+              <p>Start tracking your nutrition today 🥗</p>
+
+            </div>
+
+          ) : (
+
+            <div className="flex flex-col gap-[18px]">
+
+              {Object.entries(groupedLogs).map(([key, items]) => {
+
+                const totalCalories = items.reduce(
+                  (sum, l) => sum + (l.caloriesConsumed || 0),
+                  0
+                );
+
+                const [date, mealType] = key.split('-');
+
+                return (
+
+                  <div
+                    key={key}
+                    className="bg-[var(--bg-card)] rounded-[12px] border border-[var(--border)] p-[18px] flex flex-col gap-[14px]"
+                  >
+
+                    <div className="flex justify-between items-center border-b border-[var(--border)] pb-[8px]">
+
+                      <div>
+                        <span className="badge badge-blue">{mealType}</span>
+
+                        <span className="ml-[10px] text-[var(--text-muted)]">
+                          {date}
+                        </span>
+                      </div>
+
+                      <strong className="text-[1.1rem] text-[var(--emerald)]">
+                        {totalCalories} kcal
+                      </strong>
+
+                    </div>
+
+                    {items.map(l => (
+
+                      <div
+                        key={l.id}
+                        className="py-[8px] border-b border-[var(--border)] flex flex-col gap-[6px]"
+                      >
+
+                        <div className="font-medium">
+                          {l.foodItems} ({l.quantityInGrams} g)
+                        </div>
+
+                        <div className="flex gap-[16px] text-[0.85rem] text-[var(--text-muted)]">
+                          <span>P {l.proteinGrams || 0}g</span>
+                          <span>C {l.carbsGrams || 0}g</span>
+                          <span>F {l.fatGrams || 0}g</span>
+                        </div>
+
+                        <div className="flex gap-[10px] justify-end">
+
+                          <button
+                            className="btn-ghost"
+                            onClick={() => handleEdit(l)}
+                          >
+                            <FiEdit2 /> Edit
+                          </button>
+
+                          <button
+                            className="btn-danger"
+                            onClick={() => handleDelete(l.id)}
+                          >
+                            <FiTrash2 /> Delete
+                          </button>
+
+                        </div>
+
+                      </div>
+
+                    ))}
+
+                  </div>
+
+                );
+
+              })}
+
+            </div>
+
           )}
+
         </div>
+
       </div>
     </>
   );
 }
-
-const styles = {
-  page: { minHeight: 'calc(100vh - 64px)', padding: '32px 24px' },
-  container: { maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' },
-  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' },
-  title: { fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' },
-  sub: { color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '4px' },
-  formCard: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '24px' },
-  formTitle: { fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '20px' },
-  form: { display: 'flex', flexDirection: 'column', gap: '16px' },
-  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' },
-  grid4: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' },
-  formActions: { display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '4px' },
-  list: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  logCard: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' },
-  logHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  date: { color: 'var(--text-muted)', fontSize: '0.82rem' },
-  calories: { fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 700, color: 'var(--emerald)' },
-  foodItems: { color: 'var(--text-secondary)', fontSize: '0.9rem' },
-  macros: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-  macro: { padding: '3px 10px', borderRadius: '99px', fontSize: '0.78rem', fontWeight: 600 },
-  actions: { display: 'flex', gap: '8px', justifyContent: 'flex-end' },
-};

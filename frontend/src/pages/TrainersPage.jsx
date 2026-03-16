@@ -1,131 +1,209 @@
-import { useState, useEffect } from 'react';
-import { FiStar, FiMail, FiPhone, FiUsers } from 'react-icons/fi';
-import { trainerService } from '../services/api';
-import Navbar from '../components/Navbar';
+import { useState, useEffect } from "react";
+import { FiStar, FiMail, FiPhone, FiUsers, FiArrowRight } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import { trainerService } from "../services/api";
 
 const SPEC_COLORS = {
-  'Yoga & Meditation': '#a78bfa',
-  'Strength Training': '#fb923c',
-  'Nutrition & Diet':  '#34d399',
-  'Cardio & HIIT':     '#38bdf8',
-  'Pilates & Core':    '#f472b6',
+  "Yoga & Meditation": "#a78bfa",
+  "Strength Training": "#fb923c",
+  "Nutrition & Diet": "#34d399",
+  "Cardio & HIIT": "#38bdf8",
+  "Pilates & Core": "#f472b6",
 };
 
 function StarRating({ rating }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-      {[1, 2, 3, 4, 5].map(i => (
-        <FiStar key={i} style={{ color: i <= Math.round(rating) ? '#fbbf24' : 'var(--border)', fill: i <= Math.round(rating) ? '#fbbf24' : 'transparent' }} />
+    <div className="flex items-center gap-[4px]">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <FiStar
+          key={i}
+          style={{
+            color: i <= Math.round(rating) ? "#fbbf24" : "#334155",
+            fill: i <= Math.round(rating) ? "#fbbf24" : "transparent",
+          }}
+        />
       ))}
-      <span style={{ marginLeft: '4px', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{rating?.toFixed(1)}</span>
+
+      <span className="ml-[4px] text-[0.85rem] text-[var(--text-secondary)] font-semibold">
+        {rating?.toFixed(1)}
+      </span>
     </div>
   );
 }
 
 export default function TrainersPage() {
   const [trainers, setTrainers] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [filter, setFilter]     = useState('All');
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("All");
+
+  const navigate = useNavigate();
 
   useEffect(() => {
-    trainerService.getAll()
-      .then(r => setTrainers(r.data))
+    trainerService
+      .getAll()
+      .then((r) => setTrainers(r.data))
+      .catch((err) => console.error(err))
       .finally(() => setLoading(false));
   }, []);
 
-  const specs = ['All', ...new Set(trainers.map(t => t.specialization))];
-  const filtered = filter === 'All' ? trainers : trainers.filter(t => t.specialization === filter);
+  const specs = ["All", ...new Set(trainers.map((t) => t.specialization))];
+
+  const filtered =
+    filter === "All"
+      ? trainers
+      : trainers.filter((t) => t.specialization === filter);
 
   return (
-    <>
-      <Navbar />
-      <div style={styles.page} className="page-enter">
-        <div style={styles.container}>
-          <div style={styles.hero}>
-            <FiUsers style={{ color: 'var(--emerald)', fontSize: '2rem' }} />
-            <h1 style={styles.title}>Find Your Trainer</h1>
-            <p style={styles.sub}>Connect with expert trainers to accelerate your health journey</p>
-          </div>
+    <div className="min-h-[calc(100vh-64px)] px-[24px] py-[40px]">
 
-          <div style={styles.filters}>
-            {specs.map(s => (
-              <button key={s} onClick={() => setFilter(s)} style={{ ...styles.filterBtn, ...(filter === s ? styles.filterActive : {}) }}>
-                {s}
-              </button>
-            ))}
-          </div>
+      <div className="max-w-[1100px] mx-auto flex flex-col gap-[32px]">
 
-          {loading ? <div style={{ textAlign: 'center', padding: '80px' }}><div className="spinner" /></div>
-          : filtered.length === 0 ? (
-            <div className="empty-state"><FiUsers size={48} /><h3>No trainers available</h3></div>
-          ) : (
-            <div style={styles.grid}>
-              {filtered.map(t => {
-                const specColor = SPEC_COLORS[t.specialization] || 'var(--emerald)';
-                return (
-                  <div key={t.id} style={styles.trainerCard}>
-                    <div style={styles.cardTop}>
-                      <div style={{ ...styles.avatar, background: specColor + '20', color: specColor }}>
-                        {t.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
-                      </div>
-                      {t.isAvailable && <span style={styles.available}>Available</span>}
-                    </div>
-                    <div style={styles.cardBody}>
-                      <h3 style={styles.trainerName}>{t.name}</h3>
-                      <span style={{ ...styles.specBadge, background: specColor + '18', color: specColor }}>
-                        {t.specialization}
-                      </span>
-                      <StarRating rating={t.rating} />
-                      {t.experienceYears && (
-                        <p style={styles.experience}>{t.experienceYears} years of experience</p>
-                      )}
-                      {t.bio && <p style={styles.bio}>{t.bio?.substring(0, 110)}…</p>}
-                    </div>
-                    <div style={styles.cardFooter}>
-                      {t.email && (
-                        <a href={`mailto:${t.email}`} style={styles.contactBtn} className="btn-ghost">
-                          <FiMail /> Email
-                        </a>
-                      )}
-                      {t.phoneNumber && (
-                        <a href={`tel:${t.phoneNumber}`} style={styles.contactBtn} className="btn-primary">
-                          <FiPhone /> Contact
-                        </a>
-                      )}
-                      {!t.email && !t.phoneNumber && (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>Contact info unavailable</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        {/* HERO */}
+
+        <div className="flex flex-col items-center text-center gap-[12px]">
+
+          <FiUsers className="text-[var(--emerald)] text-[2rem]" />
+
+          <h1 className="font-display text-[2.4rem] font-bold">
+            Find Your Trainer
+          </h1>
+
+          <p className="text-[var(--text-secondary)] max-w-[500px]">
+            Connect with expert trainers to accelerate your health journey
+          </p>
+
         </div>
+
+        {/* FILTERS */}
+
+        <div className="flex flex-wrap justify-center gap-[8px]">
+
+          {specs.map((s) => (
+            <button
+              key={s}
+              onClick={() => setFilter(s)}
+              className={`px-[18px] py-[8px] rounded-full text-[0.85rem] font-medium border-[1.5px] transition
+              ${
+                filter === s
+                  ? "border-[var(--emerald)] text-[var(--emerald)] bg-[var(--emerald-glow)]"
+                  : "border-[var(--border)] text-[var(--text-secondary)]"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+
+        </div>
+
+        {/* CONTENT */}
+
+        {loading ? (
+          <div className="text-center py-[80px]">
+            Loading trainers...
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-[80px]">
+            <FiUsers size={48} className="mx-auto mb-3" />
+            <h3>No trainers available</h3>
+          </div>
+        ) : (
+          <div className="grid gap-[20px] grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
+
+            {filtered.map((t) => {
+              const specColor =
+                SPEC_COLORS[t.specialization] || "var(--emerald)";
+
+              return (
+                <div
+                  key={t.id}
+                  className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[16px] flex flex-col overflow-hidden hover:scale-[1.03] hover:shadow-lg transition duration-300"
+                >
+                  {/* CARD HEADER */}
+
+                  <div className="px-[24px] pt-[24px] flex justify-between items-start">
+
+                    <div
+                      className="w-[60px] h-[60px] rounded-full flex items-center justify-center font-bold text-[1.2rem]"
+                      style={{
+                        background: specColor + "20",
+                        color: specColor,
+                      }}
+                    >
+                      {t.name?.split(" ").map((n) => n[0]).join("").toUpperCase()}
+                    </div>
+
+                    {t.available && (
+                      <span className="px-[10px] py-[3px] rounded-full bg-[var(--emerald-glow)] text-[var(--emerald)] text-[0.72rem] font-semibold">
+                        Available
+                      </span>
+                    )}
+                  </div>
+
+                  {/* BODY */}
+
+                  <div className="px-[24px] py-[16px] flex flex-col gap-[10px] flex-1">
+
+                    <h3 className="font-display text-[1.1rem] font-bold">
+                      {t.name}
+                    </h3>
+
+                    <span
+                      className="px-[12px] py-[4px] rounded-full text-[0.78rem] font-semibold self-start"
+                      style={{
+                        background: specColor + "18",
+                        color: specColor,
+                      }}
+                    >
+                      {t.specialization}
+                    </span>
+
+                    <StarRating rating={t.rating} />
+
+                    <p className="text-[0.82rem] text-[var(--text-muted)]">
+                      {t.experienceYears} years of experience
+                    </p>
+
+                    <p className="text-[0.85rem] text-[var(--text-secondary)] leading-[1.6]">
+                      {t.bio?.substring(0, 100)}...
+                    </p>
+                  </div>
+
+                  {/* FOOTER */}
+
+                  <div className="px-[24px] py-[16px] border-t border-[var(--border)] flex gap-[8px]">
+
+                    <button
+                      onClick={() => navigate(`/trainers/${t.id}`)}
+                      className="btn-primary flex-1 flex items-center justify-center gap-[6px]"
+                    >
+                      View Profile <FiArrowRight />
+                    </button>
+
+                    {t.phoneNumber && (
+                      <a
+                        href={`tel:${t.phoneNumber}`}
+                        className="btn-ghost flex items-center justify-center px-[10px]"
+                      >
+                        <FiPhone />
+                      </a>
+                    )}
+
+                    {t.email && (
+                      <a
+                        href={`mailto:${t.email}`}
+                        className="btn-ghost flex items-center justify-center px-[10px]"
+                      >
+                        <FiMail />
+                      </a>
+                    )}
+
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }
-
-const styles = {
-  page: { minHeight: 'calc(100vh - 64px)', padding: '40px 24px' },
-  container: { maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' },
-  hero: { textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' },
-  title: { fontFamily: 'var(--font-display)', fontSize: '2.4rem', fontWeight: 700 },
-  sub: { color: 'var(--text-secondary)', maxWidth: '500px' },
-  filters: { display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' },
-  filterBtn: { padding: '8px 18px', borderRadius: '99px', border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'var(--font-display)' },
-  filterActive: { borderColor: 'var(--emerald)', color: 'var(--emerald)', background: 'var(--emerald-glow)' },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' },
-  trainerCard: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'border-color 0.2s' },
-  cardTop: { padding: '24px 24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' },
-  avatar: { width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.2rem' },
-  available: { padding: '3px 10px', borderRadius: '99px', background: 'var(--emerald-glow)', color: 'var(--emerald)', fontSize: '0.72rem', fontWeight: 600 },
-  cardBody: { padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 },
-  trainerName: { fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 700 },
-  specBadge: { display: 'inline-block', padding: '4px 12px', borderRadius: '99px', fontSize: '0.78rem', fontWeight: 600, alignSelf: 'flex-start' },
-  experience: { color: 'var(--text-muted)', fontSize: '0.82rem' },
-  bio: { color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.6 },
-  cardFooter: { padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: '10px' },
-  contactBtn: { flex: 1, justifyContent: 'center', textDecoration: 'none', fontSize: '0.85rem' },
-};

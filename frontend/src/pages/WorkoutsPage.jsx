@@ -1,22 +1,46 @@
 import { useState, useEffect } from 'react';
 import { FiPlus, FiEdit2, FiTrash2, FiActivity } from 'react-icons/fi';
 import { workoutService } from '../services/api';
-import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
 
-const WORKOUT_TYPES = ['Running', 'Cycling', 'Swimming', 'Yoga', 'Strength Training', 'HIIT', 'Pilates', 'Walking', 'Other'];
-const EMPTY = { workoutType: 'Running', date: new Date().toISOString().split('T')[0], duration: '', caloriesBurned: '', notes: '' };
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line
+} from "recharts";
+
+const EMPTY = {
+  workoutType: 'Running',
+  date: new Date().toISOString().split('T')[0],
+  duration: '',
+  caloriesBurned: '',
+  notes: ''
+};
 
 export default function WorkoutsPage() {
-  const [workouts, setWorkouts] = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [form,     setForm]     = useState(EMPTY);
-  const [errors,   setErrors]   = useState({});
-  const [editId,   setEditId]   = useState(null);
-  const [saving,   setSaving]   = useState(false);
 
-  useEffect(() => { fetchWorkouts(); }, []);
+  const [workouts, setWorkouts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(EMPTY);
+  const [errors, setErrors] = useState({});
+  const [editId, setEditId] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const [showAnalytics,setShowAnalytics] = useState(false);
+
+  useEffect(() => {
+    fetchWorkouts();
+  }, []);
 
   const fetchWorkouts = () =>
     workoutService.getAll()
@@ -26,154 +50,564 @@ export default function WorkoutsPage() {
 
   const validate = () => {
     const e = {};
+
     if (!form.workoutType) e.workoutType = 'Required';
-    if (!form.date)        e.date = 'Required';
-    if (!form.duration || form.duration < 1) e.duration = 'Must be ≥ 1 min';
+    if (!form.date) e.date = 'Required';
+    if (!form.duration || form.duration < 1)
+      e.duration = 'Must be ≥ 1 min';
+
     return e;
   };
 
   const handleSubmit = async (ev) => {
+
     ev.preventDefault();
+
     const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
+
+    if (Object.keys(e).length) {
+      setErrors(e);
+      return;
+    }
+
     setSaving(true);
+
     try {
-      const payload = { ...form, duration: parseInt(form.duration), caloriesBurned: parseInt(form.caloriesBurned) || 0 };
+
+      const payload = {
+        ...form,
+        duration: parseInt(form.duration),
+        caloriesBurned: parseInt(form.caloriesBurned) || 0
+      };
+
       if (editId) {
+
         await workoutService.update(editId, payload);
         toast.success('Workout updated!');
+
       } else {
+
         await workoutService.create(payload);
         toast.success('Workout logged! 💪');
+
       }
-      setShowForm(false); setForm(EMPTY); setEditId(null); setErrors({});
+
+      setShowForm(false);
+      setForm(EMPTY);
+      setEditId(null);
+      setErrors({});
+
       fetchWorkouts();
-    } catch { toast.error('Failed to save workout'); }
-    finally { setSaving(false); }
+
+    } catch (err) {
+
+      toast.error(
+        err.response?.data?.message ||
+        'Failed to save workout'
+      );
+
+    } finally {
+
+      setSaving(false);
+
+    }
+
   };
 
   const handleEdit = (w) => {
-    setForm({ workoutType: w.workoutType, date: w.date, duration: w.duration, caloriesBurned: w.caloriesBurned || '', notes: w.notes || '' });
-    setEditId(w.id); setShowForm(true); setErrors({});
+
+    setForm({
+      workoutType: w.workoutType,
+      date: w.date,
+      duration: w.duration,
+      caloriesBurned: w.caloriesBurned || '',
+      notes: w.notes || ''
+    });
+
+    setEditId(w.id);
+    setShowForm(true);
+
   };
 
   const handleDelete = async (id) => {
+
     if (!confirm('Delete this workout?')) return;
-    try { await workoutService.delete(id); toast.success('Deleted'); fetchWorkouts(); }
-    catch { toast.error('Failed to delete'); }
+
+    try {
+
+      await workoutService.delete(id);
+      toast.success('Deleted');
+
+      fetchWorkouts();
+
+    } catch {
+
+      toast.error('Failed to delete');
+
+    }
+
   };
 
+  // ---------- TODAY SUMMARY ----------
+
+  const today = new Date().toISOString().split('T')[0];
+
+  const todayWorkouts = workouts.filter(
+    w => w.date === today
+  );
+
+  const todayMinutes = todayWorkouts.reduce(
+    (sum, w) => sum + w.duration,
+    0
+  );
+
+  const todayCalories = todayWorkouts.reduce(
+    (sum, w) => sum + (w.caloriesBurned || 0),
+    0
+  );
+
+  // ---------- WEEKLY SUMMARY ----------
+
+  const now = new Date();
+
+  const weekAgo = new Date();
+  weekAgo.setDate(now.getDate() - 7);
+
+  const weeklyWorkouts = workouts.filter(w => {
+
+    const d = new Date(w.date);
+
+    return d >= weekAgo && d <= now;
+
+  });
+
+  const weeklyMinutes = weeklyWorkouts.reduce(
+    (sum, w) => sum + w.duration,
+    0
+  );
+
+  const weeklyCalories = weeklyWorkouts.reduce(
+    (sum, w) => sum + (w.caloriesBurned || 0),
+    0
+  );
+
+  /* ---------- ANALYTICS DATA ---------- */
+
+  const weeklyTrend = weeklyWorkouts.map(w => ({
+    date: w.date,
+    duration: w.duration
+  }));
+
+  const calorieTrend = workouts.map(w => ({
+    date: w.date,
+    calories: w.caloriesBurned || 0
+  }));
+
+  const typeCount = {};
+
+  workouts.forEach(w => {
+    typeCount[w.workoutType] =
+      (typeCount[w.workoutType] || 0) + 1;
+  });
+
+  const typeData = Object.keys(typeCount).map(k => ({
+    name: k,
+    value: typeCount[k]
+  }));
+
+  const COLORS = [
+    "#10b981",
+    "#6366f1",
+    "#f59e0b",
+    "#06b6d4",
+    "#ef4444"
+  ];
+
   return (
-    <>
-      <Navbar />
-      <div style={styles.page} className="page-enter">
-        <div style={styles.container}>
-          <div style={styles.header}>
-            <div>
-              <h1 style={styles.title}><FiActivity style={{ color: 'var(--emerald)' }} /> Workout Log</h1>
-              <p style={styles.sub}>Track your exercise sessions</p>
-            </div>
-            <button className="btn-primary" onClick={() => { setShowForm(true); setForm(EMPTY); setEditId(null); }}>
-              <FiPlus /> Log Workout
-            </button>
+
+    <div className="px-[24px] py-[32px]">
+
+      <div className="max-w-[900px] mx-auto flex flex-col gap-[24px]">
+
+        {/* HEADER */}
+
+        <div className="flex justify-between items-center">
+
+          <div>
+
+            <h1 className="text-[1.8rem] flex items-center gap-[10px]">
+
+              <FiActivity className="text-[var(--emerald)]" />
+
+              Workout Log
+
+            </h1>
+
+            <p className="text-[var(--text-secondary)]">
+
+              Track your training sessions & progress
+
+            </p>
+
           </div>
 
-          {/* Form */}
-          {showForm && (
-            <div style={styles.formCard}>
-              <h3 style={styles.formTitle}>{editId ? 'Edit Workout' : 'New Workout'}</h3>
-              <form onSubmit={handleSubmit} style={styles.form} noValidate>
-                <div style={styles.grid2}>
-                  <div className="form-group">
-                    <label>Workout Type</label>
-                    <select value={form.workoutType} onChange={e => setForm(f => ({ ...f, workoutType: e.target.value }))}>
-                      {WORKOUT_TYPES.map(t => <option key={t}>{t}</option>)}
-                    </select>
-                    {errors.workoutType && <span className="form-error">{errors.workoutType}</span>}
-                  </div>
-                  <div className="form-group">
-                    <label>Date</label>
-                    <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-                    {errors.date && <span className="form-error">{errors.date}</span>}
-                  </div>
-                  <div className="form-group">
-                    <label>Duration (minutes)</label>
-                    <input type="number" placeholder="30" value={form.duration} onChange={e => setForm(f => ({ ...f, duration: e.target.value }))} min="1" />
-                    {errors.duration && <span className="form-error">{errors.duration}</span>}
-                  </div>
-                  <div className="form-group">
-                    <label>Calories Burned</label>
-                    <input type="number" placeholder="250" value={form.caloriesBurned} onChange={e => setForm(f => ({ ...f, caloriesBurned: e.target.value }))} min="0" />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label>Notes (optional)</label>
-                  <textarea rows="2" placeholder="Any notes about this session…" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} style={{ resize: 'vertical' }} />
-                </div>
-                <div style={styles.formActions}>
-                  <button type="button" className="btn-ghost" onClick={() => { setShowForm(false); setErrors({}); }}>Cancel</button>
-                  <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Saving…' : editId ? 'Update' : 'Log Workout'}</button>
-                </div>
-              </form>
-            </div>
-          )}
+          <div className="flex gap-[10px]">
 
-          {/* List */}
-          {loading ? <div style={{ textAlign: 'center', padding: '60px 0' }}><div className="spinner" /></div>
-          : workouts.length === 0 ? (
-            <div className="empty-state">
-              <FiActivity size={48} />
-              <h3>No workouts logged yet</h3>
-              <p>Start tracking your fitness journey!</p>
-            </div>
-          ) : (
-            <div style={styles.list}>
-              {workouts.map(w => (
-                <div key={w.id} style={styles.workoutCard}>
-                  <div style={styles.workoutType}>
-                    <span className="badge badge-emerald">{w.workoutType}</span>
-                    <span style={styles.workoutDate}>{w.date}</span>
-                  </div>
-                  <div style={styles.workoutStats}>
-                    <div style={styles.stat}><span style={styles.statVal}>{w.duration}</span><span style={styles.statLbl}>min</span></div>
-                    <div style={styles.divider} />
-                    <div style={styles.stat}><span style={styles.statVal}>{w.caloriesBurned || 0}</span><span style={styles.statLbl}>kcal</span></div>
-                  </div>
-                  {w.notes && <p style={styles.notes}>{w.notes}</p>}
-                  <div style={styles.actions}>
-                    <button className="btn-ghost" style={{ padding: '6px 12px', fontSize: '0.82rem' }} onClick={() => handleEdit(w)}><FiEdit2 /> Edit</button>
-                    <button className="btn-danger" onClick={() => handleDelete(w.id)}><FiTrash2 /> Delete</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+            <button
+              className="btn-ghost"
+              onClick={()=>setShowAnalytics(prev=>!prev)}
+            >
+              📊 View Analytics
+            </button>
+
+            <button
+              className="btn-primary"
+              onClick={() => {
+
+                setShowForm(true);
+                setForm(EMPTY);
+                setEditId(null);
+
+              }}
+            >
+              <FiPlus /> Log Workout
+            </button>
+
+          </div>
+
         </div>
-      </div>
-    </>
-  );
-}
 
-const styles = {
-  page: { minHeight: 'calc(100vh - 64px)', padding: '32px 24px' },
-  container: { maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' },
-  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' },
-  title: { fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' },
-  sub: { color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '4px' },
-  formCard: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '24px' },
-  formTitle: { fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '20px' },
-  form: { display: 'flex', flexDirection: 'column', gap: '16px' },
-  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' },
-  formActions: { display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '4px' },
-  list: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  workoutCard: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' },
-  workoutType: { display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between' },
-  workoutDate: { color: 'var(--text-muted)', fontSize: '0.85rem' },
-  workoutStats: { display: 'flex', alignItems: 'center', gap: '20px' },
-  stat: { display: 'flex', alignItems: 'baseline', gap: '4px' },
-  statVal: { fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 700, color: 'var(--emerald)' },
-  statLbl: { fontSize: '0.78rem', color: 'var(--text-muted)' },
-  divider: { width: '1px', height: '28px', background: 'var(--border)' },
-  notes: { color: 'var(--text-secondary)', fontSize: '0.88rem', fontStyle: 'italic' },
-  actions: { display: 'flex', gap: '8px', justifyContent: 'flex-end' },
-};
+        {/* SUMMARY */}
+
+        <div className="grid grid-cols-2 gap-[16px]">
+
+          <div className="bg-[var(--bg-card)] p-[20px] rounded-[12px] border border-[var(--border)]">
+
+            <h4>Today’s Activity</h4>
+
+            <p className="text-[1.6rem] font-bold text-[var(--emerald)]">
+
+              {todayMinutes} min
+
+            </p>
+
+            <p className="text-[0.85rem] text-[var(--text-muted)]">
+
+              {todayCalories} kcal burned
+
+            </p>
+
+          </div>
+
+          <div className="bg-[var(--bg-card)] p-[20px] rounded-[12px] border border-[var(--border)]">
+
+            <h4>Last 7 Days</h4>
+
+            <p className="text-[1.6rem] font-bold text-[var(--emerald)]">
+
+              {weeklyMinutes} min
+
+            </p>
+
+            <p className="text-[0.85rem] text-[var(--text-muted)]">
+
+              {weeklyCalories} kcal burned
+
+            </p>
+
+          </div>
+
+        </div>
+
+        {/* ANALYTICS */}
+
+        {showAnalytics && (
+
+          <div className="bg-[var(--bg-card)] p-[24px] rounded-[12px] border border-[var(--border)] flex flex-col gap-[24px]">
+
+            <h3 className="font-semibold text-[1.2rem]">
+              Workout Analytics
+            </h3>
+
+            <div className="grid md:grid-cols-2 gap-[24px]">
+
+              {/* WEEKLY ACTIVITY */}
+
+              <div className="h-[250px]">
+
+                <p className="text-[var(--text-muted)] mb-[6px]">
+                  Weekly Workout Duration
+                </p>
+
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={weeklyTrend}>
+                    <XAxis dataKey="date"/>
+                    <YAxis/>
+                    <Tooltip/>
+                    <Bar dataKey="duration" fill="#10b981"/>
+                  </BarChart>
+                </ResponsiveContainer>
+
+              </div>
+
+              {/* WORKOUT TYPE */}
+
+              <div className="h-[250px]">
+
+                <p className="text-[var(--text-muted)] mb-[6px]">
+                  Workout Type Distribution
+                </p>
+
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={typeData}
+                      dataKey="value"
+                      nameKey="name"
+                      outerRadius={80}
+                      label
+                    >
+                      {typeData.map((entry,index)=>(
+                        <Cell key={index} fill={COLORS[index]} />
+                      ))}
+                    </Pie>
+                    <Tooltip/>
+                  </PieChart>
+                </ResponsiveContainer>
+
+              </div>
+
+            </div>
+
+            {/* CALORIE TREND */}
+
+            <div className="h-[250px]">
+
+              <p className="text-[var(--text-muted)] mb-[6px]">
+                Calories Burn Trend
+              </p>
+
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={calorieTrend}>
+                  <XAxis dataKey="date"/>
+                  <YAxis/>
+                  <Tooltip/>
+                  <Line
+                    type="monotone"
+                    dataKey="calories"
+                    stroke="#6366f1"
+                    strokeWidth={3}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+
+            </div>
+
+          </div>
+
+        )}
+
+        {/* FORM */}
+
+        {showForm && (
+
+          <div className="bg-[var(--bg-card)] p-[24px] rounded-[12px] border border-[var(--border)]">
+
+            <h3 className="mb-[10px]">
+
+              {editId ? 'Edit Workout' : 'New Workout'}
+
+            </h3>
+
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-col gap-[16px]"
+            >
+
+              <div className="grid grid-cols-2 gap-[16px]">
+
+                <select
+                  value={form.workoutType}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      workoutType: e.target.value
+                    })
+                  }
+                >
+
+                  <option value="">Select Workout Type</option>
+                  <option value="RUNNING">Running</option>
+                  <option value="CYCLING">Cycling</option>
+                  <option value="GYM">Gym</option>
+                  <option value="YOGA">Yoga</option>
+                  <option value="SWIMMING">Swimming</option>
+
+                </select>
+
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={(e) =>
+                    setForm(f => ({
+                      ...f,
+                      date: e.target.value
+                    }))
+                  }
+                />
+
+              </div>
+
+              <div className="grid grid-cols-2 gap-[16px]">
+
+                <input
+                  type="number"
+                  placeholder="Duration (min)"
+                  value={form.duration}
+                  onChange={(e) =>
+                    setForm(f => ({
+                      ...f,
+                      duration: e.target.value
+                    }))
+                  }
+                />
+
+                <input
+                  type="number"
+                  placeholder="Calories"
+                  value={form.caloriesBurned}
+                  onChange={(e) =>
+                    setForm(f => ({
+                      ...f,
+                      caloriesBurned: e.target.value
+                    }))
+                  }
+                />
+
+              </div>
+
+              <textarea
+                placeholder="Notes"
+                value={form.notes}
+                onChange={(e) =>
+                  setForm(f => ({
+                    ...f,
+                    notes: e.target.value
+                  }))
+                }
+              />
+
+              <div className="flex justify-end gap-[12px]">
+
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => setShowForm(false)}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="btn-primary"
+                >
+                  {editId ? 'Update' : 'Log'}
+                </button>
+
+              </div>
+
+            </form>
+
+          </div>
+
+        )}
+
+        {/* LIST */}
+
+        {loading ? (
+
+          <div className="text-center py-[60px]">
+            <div className="spinner" />
+          </div>
+
+        ) : workouts.length === 0 ? (
+
+          <div className="text-center py-[60px] text-[var(--text-muted)]">
+
+            <FiActivity size={48} />
+
+            <h3>No workouts logged yet</h3>
+
+            <p>Start building your fitness streak 💪</p>
+
+          </div>
+
+        ) : (
+
+          <div className="flex flex-col gap-[12px]">
+
+            {workouts.map(w => (
+
+              <div
+                key={w.id}
+                className="bg-[var(--bg-card)] p-[18px] rounded-[12px] border border-[var(--border)] flex flex-col gap-[10px]"
+              >
+
+                <div>
+
+                  <span className="badge badge-emerald">
+                    {w.workoutType}
+                  </span>
+
+                  <span className="ml-[10px] text-[var(--text-muted)]">
+                    {w.date}
+                  </span>
+
+                </div>
+
+                <div>
+
+                  <strong>{w.duration} min</strong> ·{' '}
+                  {w.caloriesBurned || 0} kcal
+
+                </div>
+
+                {w.notes && (
+                  <p className="text-[var(--text-secondary)]">
+                    {w.notes}
+                  </p>
+                )}
+
+                <div className="flex gap-[10px] justify-end">
+
+                  <button
+                    className="btn-ghost"
+                    onClick={() => handleEdit(w)}
+                  >
+                    <FiEdit2 /> Edit
+                  </button>
+
+                  <button
+                    className="btn-danger"
+                    onClick={() => handleDelete(w.id)}
+                  >
+                    <FiTrash2 /> Delete
+                  </button>
+
+                </div>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        )}
+
+      </div>
+
+    </div>
+
+  );
+
+}

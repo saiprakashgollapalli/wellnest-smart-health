@@ -15,7 +15,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // ───────────────── VALIDATION ─────────────────
+  // ───────── VALIDATION ─────────
   const validate = () => {
     const errs = {};
 
@@ -30,13 +30,13 @@ export default function LoginPage() {
     return errs;
   };
 
-  // ───────────────── HANDLE CHANGE ─────────────────
+  // ───────── HANDLE CHANGE ─────────
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
     setErrors(prev => ({ ...prev, [e.target.name]: '' }));
   };
 
-  // ───────────────── SUBMIT LOGIN ─────────────────
+  // ───────── SUBMIT LOGIN ─────────
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -75,68 +75,96 @@ export default function LoginPage() {
     }
   };
 
-  // ───────────────── UI ─────────────────
   return (
-    <div style={styles.page}>
+    <div className="flex min-h-screen">
 
       {/* LEFT PANEL */}
-      <div style={styles.left}>
-        <div style={styles.heroContent}>
-          <FiActivity style={{ color: 'var(--emerald)', fontSize: '2.5rem' }} />
+      <div className="flex-1 flex items-center justify-center p-[48px] bg-[linear-gradient(135deg,#0d1117_0%,#0a1628_50%,#0d2116_100%)]">
 
-          <h1 style={styles.heroTitle}>
-            Track. <span style={{ color: 'var(--emerald)' }}>Improve.</span> Thrive.
-          </h1>
+        <div className="max-w-[460px]">
 
-          <p style={styles.heroSub}>
+          <FiActivity className="text-[2.5rem] text-[var(--emerald)]" />
+
+         <h1 className="text-[3rem] font-bold leading-[1.2]">
+  <span className="text-white">Track.</span>{" "}
+  <span className="text-[var(--emerald)]">Improve.</span>{" "}
+  <span className="text-white">Thrive.</span>
+</h1>
+          <p className="text-[var(--text-secondary)] mt-[20px]">
             Your complete health companion. Track workouts, nutrition, sleep
             and watch your progress grow.
           </p>
+
         </div>
+
       </div>
 
       {/* RIGHT PANEL */}
-      <div style={styles.right}>
-        <div style={styles.formCard} className="page-enter">
+      <div className="w-[440px] flex items-center justify-center px-[24px] py-[32px] bg-[var(--bg-card)] border-l border-[var(--border)]">
 
-          <div style={styles.formHeader}>
-            <Link to="/" style={styles.logo}>
-              <FiActivity style={{ color: 'var(--emerald)' }} />
+        <div className="w-full max-w-[380px] page-enter">
+
+          {/* HEADER */}
+          <div className="mb-[32px]">
+
+            <Link to="/" className="inline-flex items-center gap-[8px] font-bold mb-[24px]">
+              <FiActivity className="text-[var(--emerald)]" />
               WellNest
             </Link>
 
-            <h2 style={styles.title}>Welcome back</h2>
-            <p style={styles.subtitle}>Sign in to your dashboard</p>
+            <h2 className="text-[1.8rem] font-bold">
+              Welcome back
+            </h2>
+
+            <p className="text-[var(--text-secondary)] text-[0.9rem]">
+              Sign in to your dashboard
+            </p>
+
           </div>
 
           {/* FORM */}
-          <form onSubmit={handleSubmit} style={styles.form} noValidate>
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-[18px]"
+            noValidate
+          >
 
             {/* EMAIL */}
             <div className="form-group">
+
               <label>Email Address</label>
 
-              <div style={styles.inputWrap}>
-                <FiMail style={styles.icon} />
+              <div className="relative">
+
+                <FiMail className="absolute left-[14px] top-[50%] -translate-y-1/2" />
+
                 <input
                   type="email"
                   name="email"
                   placeholder="you@example.com"
                   value={form.email}
                   onChange={handleChange}
-                  style={{ paddingLeft: '44px' }}
+                  className="pl-[44px]"
                 />
+
               </div>
 
-              {errors.email && <span className="form-error">{errors.email}</span>}
+              {errors.email && (
+                <span className="form-error">
+                  {errors.email}
+                </span>
+              )}
+
             </div>
 
             {/* PASSWORD */}
             <div className="form-group">
+
               <label>Password</label>
 
-              <div style={styles.inputWrap}>
-                <FiLock style={styles.icon} />
+              <div className="relative">
+
+                <FiLock className="absolute left-[14px] top-[50%] -translate-y-1/2" />
 
                 <input
                   type={showPwd ? 'text' : 'password'}
@@ -144,41 +172,44 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={form.password}
                   onChange={handleChange}
-                  style={{ paddingLeft: '44px', paddingRight: '44px' }}
+                  className="pl-[44px] pr-[44px]"
                 />
 
                 <button
-                  type="button"
-                  style={styles.eyeBtn}
-                  onClick={() => setShowPwd(prev => !prev)}
-                >
-                  {showPwd ? <FiEyeOff /> : <FiEye />}
-                </button>
+  type="button"
+  onClick={() => setShowPwd(prev => !prev)}
+  className="absolute right-[12px] top-[50%] -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+>
+  {showPwd ? <FiEyeOff /> : <FiEye />}
+</button>
+
               </div>
 
-              {errors.password && <span className="form-error">{errors.password}</span>}
+              {errors.password && (
+                <span className="form-error">
+                  {errors.password}
+                </span>
+              )}
+
             </div>
 
             {/* FORGOT PASSWORD */}
-            <div style={{ textAlign: "right", marginTop: "-10px" }}>
+            <div className="text-right -mt-[10px]">
+
               <Link
                 to="/forgot-password"
-                style={{
-                  fontSize: "0.85rem",
-                  color: "var(--emerald)",
-                  fontWeight: 500
-                }}
+                className="text-[0.85rem] text-[var(--emerald)] font-medium"
               >
                 Forgot password?
               </Link>
+
             </div>
 
             {/* BUTTON */}
             <button
               type="submit"
-              className="btn-primary"
+              className="btn-primary w-full justify-center mt-[8px]"
               disabled={loading}
-              style={{ width: '100%', justifyContent: 'center', marginTop: '8px' }}
             >
               {loading ? "Signing in…" : "Sign In"}
             </button>
@@ -186,95 +217,23 @@ export default function LoginPage() {
           </form>
 
           {/* FOOTER */}
-          <p style={styles.footer}>
+          <p className="mt-[24px] text-center text-[0.9rem]">
+
             Don't have an account?{" "}
-            <Link to="/register" style={{ color: 'var(--emerald)', fontWeight: 600 }}>
+
+            <Link
+              to="/register"
+              className="text-[var(--emerald)] font-semibold"
+            >
               Create one
             </Link>
+
           </p>
 
         </div>
+
       </div>
+
     </div>
   );
 }
-
-const styles = {
-  page: { display: 'flex', minHeight: '100vh' },
-
-  left: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '48px',
-    background: 'linear-gradient(135deg, #0d1117 0%, #0a1628 50%, #0d2116 100%)'
-  },
-
-  heroContent: { maxWidth: '460px' },
-
-  heroTitle: {
-    fontFamily: 'var(--font-display)',
-    fontSize: '3rem',
-    fontWeight: 700,
-    marginTop: '20px'
-  },
-
-  heroSub: {
-    color: 'var(--text-secondary)',
-    marginTop: '20px'
-  },
-
-  right: {
-    width: '440px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '32px 24px',
-    background: 'var(--bg-card)',
-    borderLeft: '1px solid var(--border)'
-  },
-
-  formCard: { width: '100%', maxWidth: '380px' },
-
-  formHeader: { marginBottom: '32px' },
-
-  logo: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontWeight: 700,
-    marginBottom: '24px'
-  },
-
-  title: { fontSize: '1.8rem', fontWeight: 700 },
-
-  subtitle: { color: 'var(--text-secondary)', fontSize: '0.9rem' },
-
-  form: { display: 'flex', flexDirection: 'column', gap: '18px' },
-
-  inputWrap: { position: 'relative' },
-
-  icon: {
-    position: 'absolute',
-    left: '14px',
-    top: '50%',
-    transform: 'translateY(-50%)'
-  },
-
-  eyeBtn: {
-    position: 'absolute',
-    right: '12px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    background: 'transparent',
-    cursor: 'pointer',
-    color:"white"
-  },
-
-  footer: {
-    marginTop: '24px',
-    textAlign: 'center',
-    fontSize: '0.9rem'
-  }
-};

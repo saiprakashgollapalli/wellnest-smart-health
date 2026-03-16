@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.LocalDate;
 
 /**
- * NutritionLog entity – tracks user daily nutrition/meal intake.
+ * NutritionLog entity – tracks user meal intake.
  */
 @Entity
 @Table(name = "nutrition_logs")
@@ -22,7 +22,9 @@ public class NutritionLog {
 
     @NotBlank
     @Column(name = "meal_type", nullable = false)
-    private String mealType; // Breakfast, Lunch, Dinner, Snack
+    private String mealType;
+    @Column(name = "quantity_in_grams", nullable = false)
+    private Double quantityInGrams = 0.0;
 
     @NotBlank
     @Column(name = "food_items", nullable = false, length = 500)
@@ -51,4 +53,10 @@ public class NutritionLog {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+    @PrePersist
+public void prePersist() {
+    if (this.date == null) {
+        this.date = LocalDate.now();
+    }
+}
 }

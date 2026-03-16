@@ -1,209 +1,517 @@
 import { useState, useEffect } from 'react';
 import { FiPlus, FiEdit2, FiTrash2, FiMoon } from 'react-icons/fi';
 import { sleepService } from '../services/api';
-import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
 
-const QUALITY_OPTIONS = ['POOR', 'FAIR', 'GOOD', 'EXCELLENT'];
-const QUALITY_COLORS = { POOR: '#f87171', FAIR: '#fbbf24', GOOD: '#34d399', EXCELLENT: '#10b981' };
-const EMPTY = { date: new Date().toISOString().split('T')[0], bedTime: '22:00', wakeTime: '06:00', sleepHours: '', sleepQuality: 'GOOD', notes: '' };
+import {
+AreaChart,
+Area,
+XAxis,
+YAxis,
+Tooltip,
+ResponsiveContainer,
+BarChart,
+Bar,
+RadialBarChart,
+RadialBar
+} from "recharts";
+
+const QUALITY_COLORS = {
+  POOR: '#f87171',
+  FAIR: '#fbbf24',
+  GOOD: '#34d399',
+  EXCELLENT: '#10b981'
+};
+
+const EMPTY = {
+  date: new Date().toISOString().split('T')[0],
+  bedTime: '22:00',
+  wakeTime: '06:00',
+  notes: ''
+};
 
 export default function SleepPage() {
-  const [logs,     setLogs]    = useState([]);
-  const [loading,  setLoading] = useState(true);
+
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form,     setForm]    = useState(EMPTY);
-  const [errors,   setErrors]  = useState({});
-  const [editId,   setEditId]  = useState(null);
-  const [saving,   setSaving]  = useState(false);
+  const [form, setForm] = useState(EMPTY);
+  const [editId, setEditId] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => { fetch(); }, []);
+  const [showAnalytics,setShowAnalytics] = useState(false);
 
-  const fetch = () =>
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  const fetchLogs = () =>
     sleepService.getAll()
       .then(r => setLogs(r.data))
       .catch(() => toast.error('Failed to load sleep logs'))
       .finally(() => setLoading(false));
 
-  // Auto-calculate sleep hours from bed/wake times
-  const calcHours = (bed, wake) => {
-    if (!bed || !wake) return '';
-    const [bh, bm] = bed.split(':').map(Number);
-    const [wh, wm] = wake.split(':').map(Number);
-    let mins = (wh * 60 + wm) - (bh * 60 + bm);
-    if (mins < 0) mins += 24 * 60;
-    return (mins / 60).toFixed(1);
+  const calculateSleepHours = () => {
+
+    if (!form.bedTime || !form.wakeTime) return 0;
+
+    const [bh, bm] = form.bedTime.split(':').map(Number);
+    const [wh, wm] = form.wakeTime.split(':').map(Number);
+
+    let minutes = (wh * 60 + wm) - (bh * 60 + bm);
+
+    if (minutes < 0) minutes += 24 * 60;
+
+    return (minutes / 60).toFixed(1);
   };
 
-  const handleTimeChange = (field, val) => {
-    const updated = { ...form, [field]: val };
-    const hrs = calcHours(
-      field === 'bedTime' ? val : form.bedTime,
-      field === 'wakeTime' ? val : form.wakeTime
-    );
-    setForm({ ...updated, sleepHours: hrs });
-    setErrors(e => ({ ...e, sleepHours: '' }));
+  const getQuality = (hours) => {
+    const h = parseFloat(hours);
+
+    if (h < 5) return 'POOR';
+    if (h < 6.5) return 'FAIR';
+    if (h < 8) return 'GOOD';
+
+    return 'EXCELLENT';
   };
 
-  const validate = () => {
-    const e = {};
-    if (!form.date) e.date = 'Date is required';
-    if (!form.sleepHours || form.sleepHours <= 0 || form.sleepHours > 24) e.sleepHours = 'Enter valid sleep hours (0–24)';
-    return e;
+  const getScheduleWarning = () => {
+
+    if (!form.bedTime) return null;
+
+    const [bh] = form.bedTime.split(':').map(Number);
+
+    if (bh >= 1 && bh <= 4) {
+      return "Late Sleep Cycle ⚠️ Consider sleeping earlier for better recovery.";
+    }
+
+    return null;
   };
 
-  const handleSubmit = async (ev) => {
-    ev.preventDefault();
-    const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
+  const liveHours = calculateSleepHours();
+  const liveQuality = getQuality(liveHours);
+
+  const handleSubmit = async (e) => {
+
+    e.preventDefault();
     setSaving(true);
+
     try {
-      const payload = { ...form, sleepHours: parseFloat(form.sleepHours) };
+
       if (editId) {
-        await sleepService.update(editId, payload);
+        await sleepService.update(editId, form);
         toast.success('Updated!');
       } else {
-        await sleepService.create(payload);
-        toast.success('Sleep logged! 😴');
+        await sleepService.create(form);
+        toast.success('Sleep logged 😴');
       }
-      setShowForm(false); setForm(EMPTY); setEditId(null); setErrors({}); fetch();
-    } catch { toast.error('Failed to save'); }
-    finally { setSaving(false); }
+
+      setShowForm(false);
+      setForm(EMPTY);
+      setEditId(null);
+      fetchLogs();
+
+    } catch {
+
+      toast.error('Failed to save');
+
+    } finally {
+
+      setSaving(false);
+
+    }
+
   };
 
   const handleEdit = (l) => {
-    setForm({ date: l.date, bedTime: l.bedTime || '22:00', wakeTime: l.wakeTime || '06:00', sleepHours: l.sleepHours, sleepQuality: l.sleepQuality || 'GOOD', notes: l.notes || '' });
-    setEditId(l.id); setShowForm(true); setErrors({});
+
+    setForm({
+      date: l.date,
+      bedTime: l.bedTime || '22:00',
+      wakeTime: l.wakeTime || '06:00',
+      notes: l.notes || ''
+    });
+
+    setEditId(l.id);
+    setShowForm(true);
   };
 
   const handleDelete = async (id) => {
+
     if (!confirm('Delete this entry?')) return;
-    try { await sleepService.delete(id); toast.success('Deleted'); fetch(); }
-    catch { toast.error('Failed to delete'); }
+
+    try {
+
+      await sleepService.delete(id);
+
+      toast.success('Deleted');
+
+      fetchLogs();
+
+    } catch {
+
+      toast.error('Failed to delete');
+
+    }
+
   };
 
+  /* ---------- ANALYTICS DATA ---------- */
+
+  const sleepTrend = logs.map(l => ({
+    date: l.date,
+    hours: l.sleepHours
+  }));
+
+  const avgSleep =
+    logs.reduce((s,l)=>s+(l.sleepHours||0),0) / (logs.length || 1);
+
+  const comparisonData = [
+    { name:"Today", hours: logs[0]?.sleepHours || 0 },
+    { name:"Average", hours: avgSleep.toFixed(1) }
+  ];
+
+  const qualityCount = {
+    POOR:0,
+    FAIR:0,
+    GOOD:0,
+    EXCELLENT:0
+  };
+
+  logs.forEach(l=>{
+    if(qualityCount[l.sleepQuality]!==undefined){
+      qualityCount[l.sleepQuality]++;
+    }
+  });
+
+  const qualityData = Object.entries(qualityCount).map(([q,v])=>({
+    name:q,
+    value:v,
+    fill:QUALITY_COLORS[q]
+  }));
+
   return (
-    <>
-      <Navbar />
-      <div style={styles.page} className="page-enter">
-        <div style={styles.container}>
-          <div style={styles.header}>
-            <div>
-              <h1 style={styles.title}><FiMoon style={{ color: '#a78bfa' }} /> Sleep Tracker</h1>
-              <p style={styles.sub}>Monitor your sleep patterns and quality</p>
-            </div>
-            <button className="btn-primary" onClick={() => { setShowForm(true); setForm(EMPTY); setEditId(null); }}>
-              <FiPlus /> Log Sleep
-            </button>
+
+    <div className="px-[24px] py-[32px]">
+
+      <div className="max-w-[900px] mx-auto flex flex-col gap-[24px]">
+
+        {/* HEADER */}
+
+        <div className="flex justify-between items-center">
+
+          <div>
+
+            <h1 className="text-[1.8rem] flex items-center gap-[10px]">
+
+              <FiMoon className="text-[#a78bfa]" />
+
+              Sleep Tracker
+
+            </h1>
+
+            <p className="text-[var(--text-secondary)]">
+              Monitor your sleep quality & patterns
+            </p>
+
           </div>
 
-          {showForm && (
-            <div style={styles.formCard}>
-              <h3 style={styles.formTitle}>{editId ? 'Edit Sleep Entry' : 'Log Sleep'}</h3>
-              <form onSubmit={handleSubmit} style={styles.form} noValidate>
-                <div style={styles.grid4}>
-                  <div className="form-group">
-                    <label>Date</label>
-                    <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-                    {errors.date && <span className="form-error">{errors.date}</span>}
-                  </div>
-                  <div className="form-group">
-                    <label>Bed Time</label>
-                    <input type="time" value={form.bedTime} onChange={e => handleTimeChange('bedTime', e.target.value)} />
-                  </div>
-                  <div className="form-group">
-                    <label>Wake Time</label>
-                    <input type="time" value={form.wakeTime} onChange={e => handleTimeChange('wakeTime', e.target.value)} />
-                  </div>
-                  <div className="form-group">
-                    <label>Sleep Hours</label>
-                    <input type="number" step="0.1" min="0" max="24" placeholder="7.5" value={form.sleepHours} onChange={e => setForm(f => ({ ...f, sleepHours: e.target.value }))} />
-                    {errors.sleepHours && <span className="form-error">{errors.sleepHours}</span>}
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label>Sleep Quality</label>
-                  <div style={styles.qualityGrid}>
-                    {QUALITY_OPTIONS.map(q => (
-                      <button key={q} type="button"
-                        onClick={() => setForm(f => ({ ...f, sleepQuality: q }))}
-                        style={{
-                          ...styles.qualityBtn,
-                          borderColor: form.sleepQuality === q ? QUALITY_COLORS[q] : 'var(--border)',
-                          color: form.sleepQuality === q ? QUALITY_COLORS[q] : 'var(--text-muted)',
-                          background: form.sleepQuality === q ? QUALITY_COLORS[q] + '18' : 'transparent',
-                        }}>
-                        {q}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label>Notes</label>
-                  <textarea rows="2" placeholder="How did you sleep?" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} style={{ resize: 'vertical' }} />
-                </div>
-                <div style={styles.formActions}>
-                  <button type="button" className="btn-ghost" onClick={() => { setShowForm(false); setErrors({}); }}>Cancel</button>
-                  <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Saving…' : editId ? 'Update' : 'Log Sleep'}</button>
-                </div>
-              </form>
-            </div>
-          )}
+          <div className="flex gap-[10px]">
 
-          {loading ? <div style={{ textAlign: 'center', padding: '60px 0' }}><div className="spinner" /></div>
-          : logs.length === 0 ? (
-            <div className="empty-state"><FiMoon size={48} /><h3>No sleep logs yet</h3><p>Start tracking your sleep tonight!</p></div>
-          ) : (
-            <div style={styles.list}>
-              {logs.map(l => (
-                <div key={l.id} style={styles.logCard}>
-                  <div style={styles.logHeader}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', fontWeight: 700, color: '#a78bfa' }}>{l.sleepHours}h</span>
-                      <span style={styles.date}>{l.date}</span>
-                    </div>
-                    {l.sleepQuality && (
-                      <span style={{ padding: '3px 12px', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 600, background: QUALITY_COLORS[l.sleepQuality] + '20', color: QUALITY_COLORS[l.sleepQuality] }}>
-                        {l.sleepQuality}
-                      </span>
-                    )}
-                  </div>
-                  {(l.bedTime || l.wakeTime) && (
-                    <p style={styles.times}>🛏 {l.bedTime || '–'} → ☀️ {l.wakeTime || '–'}</p>
-                  )}
-                  {l.notes && <p style={styles.notes}>{l.notes}</p>}
-                  <div style={styles.actions}>
-                    <button className="btn-ghost" style={{ padding: '6px 12px', fontSize: '0.82rem' }} onClick={() => handleEdit(l)}><FiEdit2 /> Edit</button>
-                    <button className="btn-danger" onClick={() => handleDelete(l.id)}><FiTrash2 /> Delete</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+            <button
+              className="btn-ghost"
+              onClick={()=>setShowAnalytics(prev=>!prev)}
+            >
+              📊 View Analytics
+            </button>
+
+            <button
+              className="btn-primary"
+              onClick={() => {
+                setShowForm(true);
+                setForm(EMPTY);
+                setEditId(null);
+              }}
+            >
+              <FiPlus /> Log Sleep
+            </button>
+
+          </div>
+
         </div>
+
+        {/* ANALYTICS */}
+
+        {showAnalytics && (
+
+          <div className="bg-[var(--bg-card)] p-[24px] rounded-[12px] border border-[var(--border)] flex flex-col gap-[24px]">
+
+            <h3 className="font-semibold text-[1.2rem]">
+              Sleep Analytics
+            </h3>
+
+            <div className="grid md:grid-cols-2 gap-[24px]">
+
+              {/* SLEEP TREND */}
+
+              <div className="h-[260px]">
+
+                <p className="text-[var(--text-muted)] mb-[6px]">
+                  Sleep Hours Trend
+                </p>
+
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={sleepTrend}>
+                    <XAxis dataKey="date"/>
+                    <YAxis/>
+                    <Tooltip/>
+                    <Area
+                      type="monotone"
+                      dataKey="hours"
+                      stroke="#a78bfa"
+                      fill="#a78bfa33"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+
+              </div>
+
+              {/* COMPARISON */}
+
+              <div className="h-[260px]">
+
+                <p className="text-[var(--text-muted)] mb-[6px]">
+                  Today vs Average
+                </p>
+
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={comparisonData}>
+                    <XAxis dataKey="name"/>
+                    <YAxis/>
+                    <Tooltip/>
+                    <Bar dataKey="hours" fill="#34d399"/>
+                  </BarChart>
+                </ResponsiveContainer>
+
+              </div>
+
+            </div>
+
+            {/* QUALITY DISTRIBUTION */}
+
+            <div className="h-[260px]">
+
+              <p className="text-[var(--text-muted)] mb-[6px]">
+                Sleep Quality Distribution
+              </p>
+
+              <ResponsiveContainer width="100%" height="100%">
+
+                <RadialBarChart
+                  innerRadius="30%"
+                  outerRadius="100%"
+                  data={qualityData}
+                >
+
+                  <RadialBar dataKey="value" />
+
+                  <Tooltip/>
+
+                </RadialBarChart>
+
+              </ResponsiveContainer>
+
+            </div>
+
+          </div>
+
+        )}
+
+        {/* FORM */}
+
+        {showForm && (
+
+          <div className="bg-[var(--bg-card)] p-[24px] rounded-[12px] border border-[var(--border)]">
+
+            <h3 className="mb-[10px]">
+              {editId ? 'Edit Sleep Entry' : 'Log Sleep'}
+            </h3>
+
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-col gap-[16px]"
+            >
+
+              <div className="grid grid-cols-3 gap-[16px]">
+
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                />
+
+                <input
+                  type="time"
+                  value={form.bedTime}
+                  onChange={e => setForm(f => ({ ...f, bedTime: e.target.value }))}
+                />
+
+                <input
+                  type="time"
+                  value={form.wakeTime}
+                  onChange={e => setForm(f => ({ ...f, wakeTime: e.target.value }))}
+                />
+
+              </div>
+
+              <div className="flex justify-between bg-[var(--bg-elevated)] px-[16px] py-[12px] rounded-[10px]">
+
+                <div>
+
+                  <strong>{liveHours} hrs</strong>
+
+                  <span
+                    className="ml-[10px]"
+                    style={{ color: QUALITY_COLORS[liveQuality] }}
+                  >
+                    {liveQuality}
+                  </span>
+
+                </div>
+
+                {getScheduleWarning() && (
+
+                  <div className="mt-[8px] bg-[#fbbf2415] border border-[#fbbf24] px-[12px] py-[8px] rounded-[8px] text-[0.85rem] text-[#fbbf24]">
+
+                    {getScheduleWarning()}
+
+                  </div>
+
+                )}
+
+              </div>
+
+              <textarea
+                placeholder="Notes"
+                value={form.notes}
+                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+              />
+
+              <div className="flex justify-end gap-[12px]">
+
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => setShowForm(false)}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="btn-primary"
+                >
+                  {editId ? 'Update' : 'Log'}
+                </button>
+
+              </div>
+
+            </form>
+
+          </div>
+
+        )}
+
+        {/* LOADING */}
+
+        {loading && (
+          <div className="text-center py-[60px] text-[var(--text-muted)]">
+            Loading...
+          </div>
+        )}
+
+        {/* EMPTY */}
+
+        {!loading && logs.length === 0 && (
+
+          <div className="text-center py-[60px] text-[var(--text-muted)]">
+
+            <FiMoon size={48} />
+
+            <h3>No sleep logs yet</h3>
+
+            <p>Start tracking your sleep tonight 🌙</p>
+
+          </div>
+
+        )}
+
+        {/* LIST */}
+
+        {logs.length > 0 && (
+
+          <div className="flex flex-col gap-[16px]">
+
+            {logs.map(l => (
+
+              <div
+                key={l.id}
+                className="bg-[var(--bg-card)] p-[20px] rounded-[12px] border border-[var(--border)] flex flex-col gap-[10px]"
+              >
+
+                <div className="flex justify-between items-center">
+
+                  <strong>{l.date}</strong>
+
+                  <span
+                    className="font-semibold"
+                    style={{
+                      color: QUALITY_COLORS[l.sleepQuality] || '#ccc'
+                    }}
+                  >
+                    {l.sleepQuality}
+                  </span>
+
+                </div>
+
+                <div className="text-[1.1rem] font-semibold">
+                  {l.sleepHours} hrs
+                </div>
+
+                {l.notes && (
+                  <div className="text-[0.9rem] text-[var(--text-muted)]">
+                    {l.notes}
+                  </div>
+                )}
+
+                <div className="flex gap-[10px] justify-end">
+
+                  <button
+                    className="btn-ghost"
+                    onClick={() => handleEdit(l)}
+                  >
+                    <FiEdit2 /> Edit
+                  </button>
+
+                  <button
+                    className="btn-danger"
+                    onClick={() => handleDelete(l.id)}
+                  >
+                    <FiTrash2 /> Delete
+                  </button>
+
+                </div>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        )}
+
       </div>
-    </>
+
+    </div>
   );
 }
-
-const styles = {
-  page: { minHeight: 'calc(100vh - 64px)', padding: '32px 24px' },
-  container: { maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' },
-  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' },
-  title: { fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' },
-  sub: { color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '4px' },
-  formCard: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '24px' },
-  formTitle: { fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '20px' },
-  form: { display: 'flex', flexDirection: 'column', gap: '16px' },
-  grid4: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' },
-  qualityGrid: { display: 'flex', gap: '10px', flexWrap: 'wrap' },
-  qualityBtn: { padding: '8px 18px', borderRadius: '99px', border: '1.5px solid', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'var(--font-display)' },
-  formActions: { display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '4px' },
-  list: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  logCard: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' },
-  logHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  date: { color: 'var(--text-muted)', fontSize: '0.82rem' },
-  times: { color: 'var(--text-secondary)', fontSize: '0.88rem' },
-  notes: { color: 'var(--text-secondary)', fontSize: '0.88rem', fontStyle: 'italic' },
-  actions: { display: 'flex', gap: '8px', justifyContent: 'flex-end' },
-};

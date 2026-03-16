@@ -25,7 +25,7 @@ export default function RegisterPage() {
 
   const [errors, setErrors] = useState({});
   const [showPwd, setShowPwd] = useState(false);
-  const [showConfirmPwd, setShowConfirmPwd] = useState(false); // ⭐ added
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -33,6 +33,7 @@ export default function RegisterPage() {
   const pwdStrength = pwdChecks.filter(c => c.test(form.password)).length;
 
   const validate = () => {
+
     const errs = {};
 
     if (!form.name || form.name.trim().length < 2)
@@ -53,6 +54,7 @@ export default function RegisterPage() {
   };
 
   const handleChange = (e) => {
+
     setForm(prev => ({
       ...prev,
       [e.target.name]: e.target.value
@@ -62,12 +64,15 @@ export default function RegisterPage() {
       ...prev,
       [e.target.name]: ''
     }));
+
   };
 
   const handleSubmit = async (e) => {
+
     e.preventDefault();
 
     const errs = validate();
+
     if (Object.keys(errs).length) {
       setErrors(errs);
       return;
@@ -76,6 +81,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
+
       await authService.register({
         name: form.name,
         email: form.email,
@@ -87,16 +93,19 @@ export default function RegisterPage() {
       toast.success("OTP sent to your email 📩");
 
       navigate("/verify-otp", {
-  state: { email: form.email, mode: "register" }
-});
-
+        state: { email: form.email, mode: "register" }
+      });
 
     } catch (err) {
+
       const msg = err.response?.data?.message || "Registration failed.";
+
       toast.error(msg);
+
     } finally {
       setLoading(false);
     }
+
   };
 
   const strengthColors = [
@@ -115,217 +124,298 @@ export default function RegisterPage() {
       : strengthColors[pwdStrength - 1];
 
   return (
-    <div style={styles.page}>
-      <div style={styles.container}>
-        <div style={styles.header}>
-          <Link to="/" style={styles.logo}>
-            <FiActivity style={{ color: 'var(--emerald)' }} />
+
+    <div className="min-h-screen flex items-center justify-center px-[24px] py-[40px]">
+
+      <div className="w-full max-w-[520px]">
+
+        {/* HEADER */}
+
+        <div className="mb-[32px]">
+
+          <Link
+            to="/"
+            className="inline-flex items-center gap-[8px] font-bold mb-[24px]"
+          >
+            <FiActivity className="text-[var(--emerald)]" />
             WellNest
           </Link>
 
-          <h2 style={styles.title}>Create your account</h2>
-          <p style={styles.subtitle}>
+          <h2 className="text-[1.8rem] font-bold mb-[6px]">
+            Create your account
+          </h2>
+
+          <p className="text-[0.9rem] text-[var(--text-secondary)]">
             Join thousands improving their health every day
           </p>
+
         </div>
 
-        <form onSubmit={handleSubmit} style={styles.form} noValidate>
+        {/* FORM */}
 
-          {/* Name + Role */}
-          <div style={styles.grid2}>
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-[18px] p-[28px] bg-[var(--bg-card)] border border-[var(--border)] rounded-[12px]"
+          noValidate
+        >
+
+          {/* NAME + ROLE */}
+
+          <div className="grid grid-cols-2 gap-[16px]">
+
             <div>
+
               <label>Full Name</label>
-              <div style={styles.inputWrap}>
-                <FiUser style={styles.icon} />
+
+              <div className="relative">
+
+                <FiUser className="absolute left-[14px] top-[50%] -translate-y-1/2 text-[var(--text-muted)]" />
+
                 <input
                   type="text"
                   name="name"
                   placeholder="John Doe"
                   value={form.name}
                   onChange={handleChange}
-                  style={{ paddingLeft: '44px' }}
+                  className="pl-[44px]"
                 />
+
               </div>
-              {errors.name && <span className="form-error">{errors.name}</span>}
+
+              {errors.name && (
+                <span className="form-error">{errors.name}</span>
+              )}
+
             </div>
 
             <div>
+
               <label>Account Type</label>
-              <select name="role" value={form.role} onChange={handleChange}>
+
+              <select
+                name="role"
+                value={form.role}
+                onChange={handleChange}
+              >
                 <option value="USER">Regular User</option>
                 <option value="TRAINER">Fitness Trainer</option>
               </select>
+
             </div>
+
           </div>
 
-          {/* Email */}
+          {/* EMAIL */}
+
           <div>
+
             <label>Email Address</label>
-            <div style={styles.inputWrap}>
-              <FiMail style={styles.icon} />
+
+            <div className="relative">
+
+              <FiMail className="absolute left-[14px] top-[50%] -translate-y-1/2 text-[var(--text-muted)]" />
+
               <input
                 type="email"
                 name="email"
                 placeholder="you@example.com"
                 value={form.email}
                 onChange={handleChange}
-                style={{ paddingLeft: '44px' }}
+                className="pl-[44px]"
               />
+
             </div>
-            {errors.email && <span className="form-error">{errors.email}</span>}
+
+            {errors.email && (
+              <span className="form-error">{errors.email}</span>
+            )}
+
           </div>
-          <div>
-  <label>Gender</label>
-  <select name="gender" value={form.gender} onChange={handleChange}>
-    <option value="MALE">Male</option>
-    <option value="FEMALE">Female</option>
-    <option value="OTHER">Other</option>
-  </select>
-</div>
 
+          {/* GENDER */}
 
-          {/* Password */}
           <div>
+
+            <label>Gender</label>
+
+            <select
+              name="gender"
+              value={form.gender}
+              onChange={handleChange}
+            >
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+              <option value="OTHER">Other</option>
+            </select>
+
+          </div>
+
+          {/* PASSWORD */}
+
+          <div>
+
             <label>Password</label>
-            <div style={styles.inputWrap}>
-              <FiLock style={styles.icon} />
+
+            <div className="relative">
+
+              <FiLock className="absolute left-[14px] top-[50%] -translate-y-1/2 text-[var(--text-muted)]" />
+
               <input
                 type={showPwd ? 'text' : 'password'}
                 name="password"
                 placeholder="Create a strong password"
                 value={form.password}
                 onChange={handleChange}
-                style={{ paddingLeft: '44px', paddingRight: '44px' }}
+                className="pl-[44px] pr-[44px]"
               />
+
               <button
                 type="button"
-                style={styles.eyeBtn}
                 onClick={() => setShowPwd(prev => !prev)}
+                className="absolute right-[12px] top-[50%] -translate-y-1/2 text-white"
               >
                 {showPwd ? <FiEyeOff /> : <FiEye />}
               </button>
+
             </div>
 
+            {/* PASSWORD STRENGTH */}
+
             {form.password && (
-              <div style={{ marginTop: '10px' }}>
-                <div style={styles.strengthBar}>
+
+              <div className="mt-[10px]">
+
+                <div className="flex gap-[4px] mb-[6px]">
+
                   {[1,2,3,4,5].map(i => (
+
                     <div
                       key={i}
+                      className="flex-1 h-[4px] rounded-[2px]"
                       style={{
-                        ...styles.strengthSegment,
                         background: i <= pwdStrength
                           ? strengthColor
                           : 'var(--border)'
                       }}
                     />
+
                   ))}
+
                 </div>
 
-                <span style={{ fontSize:'0.78rem', color: strengthColor }}>
+                <span
+                  className="text-[0.78rem]"
+                  style={{ color: strengthColor }}
+                >
                   {strengthLabels[pwdStrength]}
                 </span>
 
-                <ul style={styles.checkList}>
+                <ul className="grid grid-cols-2 gap-x-[16px] gap-y-[4px] mt-[8px]">
+
                   {pwdChecks.map(c => (
+
                     <li
                       key={c.label}
+                      className="flex items-center gap-[6px] text-[0.78rem]"
                       style={{
-                        ...styles.checkItem,
                         color: c.test(form.password)
                           ? 'var(--emerald)'
                           : 'var(--text-muted)'
                       }}
                     >
-                      {c.test(form.password) ? <FiCheck /> : <FiX />}
+
+                      {c.test(form.password)
+                        ? <FiCheck />
+                        : <FiX />
+                      }
+
                       {c.label}
+
                     </li>
+
                   ))}
+
                 </ul>
+
               </div>
+
             )}
 
-            {errors.password &&
-              <span className="form-error">{errors.password}</span>}
+            {errors.password && (
+              <span className="form-error">{errors.password}</span>
+            )}
+
           </div>
 
-          {/* Confirm Password */}
+          {/* CONFIRM PASSWORD */}
+
           <div>
+
             <label>Confirm Password</label>
-            <div style={styles.inputWrap}>
-              <FiLock style={styles.icon} />
+
+            <div className="relative">
+
+              <FiLock className="absolute left-[14px] top-[50%] -translate-y-1/2 text-[var(--text-muted)]" />
+
               <input
                 type={showConfirmPwd ? 'text' : 'password'}
                 name="confirmPwd"
                 placeholder="Repeat your password"
                 value={form.confirmPwd}
                 onChange={handleChange}
-                style={{ paddingLeft: '44px', paddingRight: '44px' }}
+                className="pl-[44px] pr-[44px]"
               />
+
               <button
                 type="button"
-                style={styles.eyeBtn}
                 onClick={() => setShowConfirmPwd(prev => !prev)}
+                className="absolute right-[12px] top-[50%] -translate-y-1/2 text-white"
               >
                 {showConfirmPwd ? <FiEyeOff /> : <FiEye />}
               </button>
+
             </div>
-            {errors.confirmPwd &&
-              <span className="form-error">{errors.confirmPwd}</span>}
+
+            {errors.confirmPwd && (
+              <span className="form-error">{errors.confirmPwd}</span>
+            )}
+
           </div>
+
+          {/* BUTTON */}
 
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary"
+            className="btn-primary w-full mt-[12px]"
             style={{
-              width:'100%',
-              marginTop:'12px',
               opacity: loading ? 0.7 : 1,
               cursor: loading ? "not-allowed" : "pointer"
             }}
           >
             {loading ? 'Creating account…' : 'Create Account'}
           </button>
+
         </form>
 
-        <p style={styles.footer}>
+        {/* FOOTER */}
+
+        <p className="text-center mt-[20px] text-[0.9rem]">
+
           Already have an account?{' '}
-          <Link to="/login" style={{ color: 'var(--emerald)' }}>
+
+          <Link
+            to="/login"
+            className="text-[var(--emerald)]"
+          >
             Sign in
           </Link>
+
         </p>
+
       </div>
+
     </div>
+
   );
 }
-
-const styles = {
-  page:{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'40px 24px'},
-  container:{width:'100%',maxWidth:'520px'},
-  header:{marginBottom:'32px'},
-  logo:{display:'inline-flex',alignItems:'center',gap:'8px',fontWeight:700,marginBottom:'24px'},
-  title:{fontSize:'1.8rem',fontWeight:700,marginBottom:'6px'},
-  subtitle:{color:'var(--text-secondary)',fontSize:'0.9rem'},
-  form:{display:'flex',flexDirection:'column',gap:'18px',padding:'28px',background:'var(--bg-card)',border:'1px solid var(--border)',borderRadius:'12px'},
-  grid2:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'},
-  inputWrap:{position:'relative'},
-  icon:{position:'absolute',left:'14px',top:'50%',transform:'translateY(-50%)',color:'var(--text-muted)'},
-  eyeBtn:{
-    position:'absolute',
-    right:'12px',
-    top:'50%',
-    transform:'translateY(-50%)',
-    background:'transparent',
-    border:'none',
-    cursor:'pointer',
-    color:'white',
-    display:'flex',
-    alignItems:'center'
-  },
-  strengthBar:{display:'flex',gap:'4px',marginBottom:'6px'},
-  strengthSegment:{height:'4px',flex:1,borderRadius:'2px'},
-  checkList:{listStyle:'none',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'4px 16px',marginTop:'8px'},
-  checkItem:{display:'flex',alignItems:'center',gap:'6px',fontSize:'0.78rem'},
-  footer:{marginTop:'20px',textAlign:'center',fontSize:'0.9rem'}
-};

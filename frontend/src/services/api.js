@@ -17,6 +17,7 @@ API.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+export default API;
 
 // ─── Response interceptor – handle 401 ─────────────────────────
 API.interceptors.response.use(
@@ -62,10 +63,9 @@ export const authService = {
 
 // ─── Profile ───────────────────────────────────────────────────
 export const profileService = {
-  save: (data) => API.post('/profile', data),
-  get: () => API.get('/profile'),
+  save: (data) => API.post("/profile", data),
+  getMe: () => API.get("/profile"),
 };
-
 // ─── Workouts ──────────────────────────────────────────────────
 export const workoutService = {
   create: (data) => API.post('/workouts', data),
@@ -84,10 +84,11 @@ export const nutritionService = {
 
 // ─── Sleep ─────────────────────────────────────────────────────
 export const sleepService = {
-  create: (data) => API.post('/sleep', data),
   getAll: () => API.get('/sleep'),
+  create: (data) => API.post('/sleep', data),
   update: (id, data) => API.put(`/sleep/${id}`, data),
   delete: (id) => API.delete(`/sleep/${id}`),
+  getStreak: () => API.get('/streak')
 };
 
 // ─── Analytics ─────────────────────────────────────────────────
@@ -111,5 +112,45 @@ export const trainerService = {
   getBySpecialization: (spec) =>
     API.get(`/trainers/specialization/${spec}`),
 };
+// ─── Water Intake ─────────────────────────────────────────────
+export const waterService = {
+  create: (data) => API.post('/water', data),
+  getAll: () => API.get('/water'),
+  getTodayTotal: () => API.get('/water/today'),
+  update: (id, data) => API.put(`/water/${id}`, data),
+  delete: (id) => API.delete(`/water/${id}`),
+};
 
-export default API;
+export const reviewService = {
+
+  getByTrainer: (trainerId) =>
+    API.get(`/trainer-reviews/${trainerId}`),
+
+  create: (trainerId, userId, data) =>
+    API.post(`/trainer-reviews?trainerId=${trainerId}&userId=${userId}`, data)
+
+};
+export const sessionService = {
+
+  book: (data) =>
+    API.post("/trainer-sessions", data),
+
+  getTrainerSessions: (trainerId) =>
+    API.get(`/trainer-sessions/trainer/${trainerId}`),
+
+  getUserSessions: (userId) =>
+    API.get(`/trainer-sessions/user/${userId}`)
+
+};
+export const recommendationService = {
+
+  getTrainerRecommendations: (userId) =>
+    API.get(`/recommendations/trainers/${userId}`)
+
+};
+export const aiCoachService = {
+
+  ask: (question) =>
+    API.post("/ai-coach/ask", { question })
+
+};

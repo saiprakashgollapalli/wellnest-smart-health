@@ -1,5 +1,6 @@
 package com.wellnest.dto;
 
+import com.wellnest.entity.BlogStatus;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -9,7 +10,8 @@ import java.time.LocalDateTime;
  */
 public class ContentDto {
 
-    // ─── Blog DTO ─────────────────────────────────────────────────────────────
+    // ───────────────── BLOG DTO ─────────────────
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -28,12 +30,36 @@ public class ContentDto {
         @NotBlank(message = "Category is required")
         private String category;
 
-        private String thumbnailUrl;
+        // Image for blog post
+        private String imageUrl;
+
+        // Author display name
         private String authorName;
+
+        // Author ID (needed to check edit/delete permissions)
+        private Long authorId;
+
+        // Moderation status
+        private BlogStatus status;
+
+        // Likes count
+        private Integer likesCount;
+
+        // Timestamp
         private LocalDateTime createdAt;
+        private String thumbnailUrl;
+
+public String getThumbnailUrl() {
+    return thumbnailUrl;
+}
+
+public void setThumbnailUrl(String thumbnailUrl) {
+    this.thumbnailUrl = thumbnailUrl;
+}
     }
 
-    // ─── Trainer DTO ─────────────────────────────────────────────────────────
+    // ───────────────── TRAINER DTO ─────────────────
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -48,7 +74,8 @@ public class ContentDto {
         @NotBlank(message = "Specialization is required")
         private String specialization;
 
-        @DecimalMin("0.0") @DecimalMax("5.0")
+        @DecimalMin("0.0")
+        @DecimalMax("5.0")
         private Double rating;
 
         private Integer experienceYears;
@@ -57,8 +84,11 @@ public class ContentDto {
         private String email;
 
         private String phoneNumber;
+
         private String bio;
+
         private String profileImageUrl;
+
         private Boolean isAvailable;
     }
 }

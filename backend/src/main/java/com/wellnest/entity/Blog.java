@@ -1,13 +1,10 @@
 package com.wellnest.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 
-/**
- * Blog entity – health articles created by admins.
- */
 @Entity
 @Table(name = "blogs")
 @Data
@@ -20,18 +17,17 @@ public class Blog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
-    @Size(min = 5, max = 200)
     @Column(nullable = false)
     private String title;
 
-    @NotBlank
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String content;
-
-    @NotBlank
     @Column(nullable = false)
-    private String category; // e.g., Nutrition, Fitness, Mental Health
+    private String category = "General";
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String content;
+    
+@Column(nullable = true)
+private String imageUrl;
 
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;
@@ -39,23 +35,50 @@ public class Blog {
     @Column(name = "author_name")
     private String authorName;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "author_id")
+    private Long authorId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private BlogStatus status;
+
+    @Column(name = "likes_count")
+    private Integer likesCount = 0;
+
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+    private String author;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "author_id")
-    private User author;
+public String getAuthor() {
+    return author;
+}
+
+public void setAuthor(String author) {
+    this.author = author;
+}
 
     @PrePersist
-    protected void onCreate() {
+    public void onCreate() {
         this.createdAt = LocalDateTime.now();
+
+        if (this.likesCount == null) {
+            this.likesCount = 0;
+        }
+
+        if (this.status == null) {
+            this.status = BlogStatus.PENDING;
+        }
+
+        if (this.category == null) {
+            this.category = "General";
+        }
     }
 
     @PreUpdate
-    protected void onUpdate() {
+    public void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
 }
