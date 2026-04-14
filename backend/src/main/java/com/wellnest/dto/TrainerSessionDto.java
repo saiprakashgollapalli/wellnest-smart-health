@@ -3,15 +3,15 @@ package com.wellnest.dto;
 import lombok.Data;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import com.fasterxml.jackson.annotation.JsonFormat;
 
 @Data
-public class TrainerSessionRequest {
+public class TrainerSessionDto {
+    private Long id;
     private Long trainerId;
+    private String trainerName;
     private Long userId;
-    @JsonFormat(pattern = "yyyy-MM-dd")
+    private String userName;
     private LocalDate sessionDate;
-    
-    @JsonFormat(pattern = "HH:mm")
     private LocalTime sessionTime;
+    private String status;
 }

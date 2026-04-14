@@ -7,10 +7,11 @@ import java.time.LocalDateTime;
 
 /**
  * DTOs for Blog and Trainer modules.
+ * UPDATED: Added moderation fields while preserving existing fields
  */
 public class ContentDto {
 
-    // ───────────────── BLOG DTO ─────────────────
+    // ───────────────── BLOG DTO (UPDATED) ─────────────────
 
     @Data
     @NoArgsConstructor
@@ -47,18 +48,23 @@ public class ContentDto {
 
         // Timestamp
         private LocalDateTime createdAt;
+        
         private String thumbnailUrl;
+        
+        // NEW: Moderation fields
+        private LocalDateTime moderatedAt;
+        private String moderatedBy;
 
-public String getThumbnailUrl() {
-    return thumbnailUrl;
-}
+        public String getThumbnailUrl() {
+            return thumbnailUrl;
+        }
 
-public void setThumbnailUrl(String thumbnailUrl) {
-    this.thumbnailUrl = thumbnailUrl;
-}
+        public void setThumbnailUrl(String thumbnailUrl) {
+            this.thumbnailUrl = thumbnailUrl;
+        }
     }
 
-    // ───────────────── TRAINER DTO ─────────────────
+    // ───────────────── TRAINER DTO (UNCHANGED) ─────────────────
 
     @Data
     @NoArgsConstructor

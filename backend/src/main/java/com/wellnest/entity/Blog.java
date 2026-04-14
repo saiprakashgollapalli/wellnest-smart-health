@@ -1,10 +1,15 @@
 package com.wellnest.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * Blog entity – health articles created by admins/trainers/users.
+ * UPDATED: Added BlogStatus with moderation workflow while preserving existing fields
+ */
 @Entity
 @Table(name = "blogs")
 @Data
@@ -17,17 +22,22 @@ public class Blog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
+    @Size(min = 5, max = 200)
     @Column(nullable = false)
     private String title;
 
+    @NotBlank
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String content;
+
+    @NotBlank
     @Column(nullable = false)
+    @Builder.Default
     private String category = "General";
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String content;
-    
-@Column(nullable = true)
-private String imageUrl;
+    @Column(nullable = true)
+    private String imageUrl;
 
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;
@@ -40,9 +50,11 @@ private String imageUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private BlogStatus status;
+    @Builder.Default
+    private BlogStatus status = BlogStatus.PENDING;
 
     @Column(name = "likes_count")
+    @Builder.Default
     private Integer likesCount = 0;
 
     @Column(name = "created_at")
@@ -50,28 +62,41 @@ private String imageUrl;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    private String author;
 
-public String getAuthor() {
-    return author;
-}
+    @Column(name = "moderated_at")
+    private LocalDateTime moderatedAt;
 
-public void setAuthor(String author) {
-    this.author = author;
-}
+    @Column(name = "moderated_by")
+    private String moderatedBy;  // Name of admin/trainer who approved/rejected
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_user_id")
+    private User author;
+
+    // For backward compatibility - get author name from either author object or authorName field
+    public String getAuthor() {
+        if (author != null && author.getName() != null) {
+            return author.getName();
+        }
+        return authorName;
+    }
+
+    public void setAuthor(String author) {
+        this.authorName = author;
+    }
 
     @PrePersist
     public void onCreate() {
         this.createdAt = LocalDateTime.now();
-
+        
         if (this.likesCount == null) {
             this.likesCount = 0;
         }
-
+        
         if (this.status == null) {
             this.status = BlogStatus.PENDING;
         }
-
+        
         if (this.category == null) {
             this.category = "General";
         }

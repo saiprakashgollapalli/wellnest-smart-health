@@ -25,6 +25,9 @@ public class UserDetailsImpl implements UserDetails {
     private String password;
 
     private Collection<? extends GrantedAuthority> authorities;
+    
+    @Getter
+    private User.Role role;  // Add role field
 
     public static UserDetailsImpl build(User user) {
         List<SimpleGrantedAuthority> authorities = List.of(
@@ -35,7 +38,8 @@ public class UserDetailsImpl implements UserDetails {
                 user.getName(),
                 user.getEmail(),
                 user.getPassword(),
-                authorities
+                authorities,
+                user.getRole()  // Pass the role
         );
     }
 

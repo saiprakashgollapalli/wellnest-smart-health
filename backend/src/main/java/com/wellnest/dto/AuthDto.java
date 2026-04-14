@@ -4,12 +4,8 @@ import com.wellnest.entity.User;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
-/**
- * DTOs for Authentication (Register & Login).
- */
 public class AuthDto {
 
-    // ─── Register Request ───────────────────────────────────────────────────
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -26,23 +22,30 @@ public class AuthDto {
 
         @NotBlank(message = "Password is required")
         @Size(min = 8, message = "Password must be at least 8 characters")
-        @Pattern(
-            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
-            message = "Password must contain uppercase, lowercase, number and special character"
-        )
+        // Less strict password for easier testing - remove if you want strict validation
+        // @Pattern(
+        //     regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
+        //     message = "Password must contain uppercase, lowercase, number and special character"
+        // )
         private String password;
 
         private User.Role role = User.Role.USER;
         private User.Gender gender;
 
+        // Prevent ADMIN role during registration
+        public void setRole(User.Role role) {
+            if (role == User.Role.ADMIN) {
+                this.role = User.Role.USER;
+            } else {
+                this.role = role;
+            }
+        }
     }
 
-    // ─── Login Request ───────────────────────────────────────────────────────
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class LoginRequest {
-
         @NotBlank(message = "Email is required")
         @Email(message = "Please provide a valid email address")
         private String email;
@@ -51,7 +54,6 @@ public class AuthDto {
         private String password;
     }
 
-    // ─── Auth Response ───────────────────────────────────────────────────────
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

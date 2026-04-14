@@ -1,10 +1,11 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiActivity, FiLogOut, FiUser, FiMenu, FiX } from 'react-icons/fi';
+import { FiActivity, FiLogOut, FiUser, FiMenu, FiX, FiShield, FiAward } from 'react-icons/fi';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
-const NAV_LINKS = [
+// Base navigation links (visible to all authenticated users)
+const BASE_NAV_LINKS = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/workouts',  label: 'Workouts' },
   { to: '/nutrition', label: 'Nutrition' },
@@ -14,10 +15,26 @@ const NAV_LINKS = [
 ];
 
 export default function Navbar() {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, isAdmin, canModerate } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Build navigation links based on user role
+  const getNavLinks = () => {
+    const links = [...BASE_NAV_LINKS];
+    
+    // Add role-specific links
+    if (isAdmin) {
+      links.push({ to: '/admin', label: 'Admin Panel', icon: <FiShield /> });
+    } else if (canModerate) {
+      links.push({ to: '/trainer', label: 'Trainer Panel', icon: <FiAward /> });
+    }
+    
+    return links;
+  };
+
+  const NAV_LINKS = getNavLinks();
 
   const handleLogout = () => {
     logout();
@@ -47,6 +64,7 @@ export default function Navbar() {
                   ...(isActive(link.to) ? styles.navLinkActive : {}),
                 }}
               >
+                {link.icon && <span style={{ marginRight: '6px', fontSize: '1rem' }}>{link.icon}</span>}
                 {link.label}
               </Link>
             </li>
@@ -59,7 +77,12 @@ export default function Navbar() {
             <>
               <Link to="/profile-setup" style={styles.userBtn}>
                 <FiUser />
-                <span style={{ fontSize: '0.85rem' }}>{user?.name?.split(' ')[0]}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{user?.name?.split(' ')[0]}</span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    {user?.role}
+                  </span>
+                </div>
               </Link>
               <button onClick={handleLogout} style={styles.logoutBtn} title="Logout">
                 <FiLogOut />
@@ -89,6 +112,7 @@ export default function Navbar() {
               style={{ ...styles.mobileLink, ...(isActive(link.to) ? styles.mobileLinkActive : {}) }}
               onClick={() => setMobileOpen(false)}
             >
+              {link.icon && <span style={{ marginRight: '8px' }}>{link.icon}</span>}
               {link.label}
             </Link>
           ))}
@@ -130,7 +154,8 @@ const styles = {
     '@media(maxWidth:768px)': { display: 'none' },
   },
   navLink: {
-    display: 'block', padding: '6px 12px',
+    display: 'flex', alignItems: 'center',
+    padding: '6px 12px',
     borderRadius: 'var(--radius-sm)',
     fontSize: '0.88rem', fontWeight: 500,
     color: 'var(--text-secondary)',
@@ -176,6 +201,7 @@ const styles = {
     background: 'var(--bg-card)',
   },
   mobileLink: {
+    display: 'flex', alignItems: 'center',
     padding: '10px 14px',
     borderRadius: 'var(--radius-sm)',
     color: 'var(--text-secondary)',

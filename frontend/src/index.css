@@ -256,3 +256,11 @@ button {
 }
 
 .empty-state svg { font-size: 3rem; opacity: 0.4; }
+/* Add to your index.css or App.css */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}

@@ -4,6 +4,7 @@ const AuthContext = createContext(null);
 
 /**
  * AuthProvider – wraps the app and provides auth state and actions.
+ * UPDATED: Added role-based access helpers and canModerate flag
  */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -30,9 +31,22 @@ export function AuthProvider({ children }) {
   const isAuthenticated = Boolean(user);
   const isAdmin = user?.role === 'ADMIN';
   const isTrainer = user?.role === 'TRAINER';
+  const isUser = user?.role === 'USER';
+  
+  // Combined check: TRAINER or ADMIN can moderate blogs
+  const canModerate = isTrainer || isAdmin;
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated, isAdmin, isTrainer }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      logout, 
+      isAuthenticated, 
+      isAdmin, 
+      isTrainer,
+      isUser,
+      canModerate 
+    }}>
       {children}
     </AuthContext.Provider>
   );

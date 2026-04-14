@@ -4,9 +4,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
-/**
- * Trainer entity – stores trainer profiles with specializations.
- */
 @Entity
 @Table(name = "trainers")
 @Data
@@ -25,7 +22,7 @@ public class Trainer {
 
     @NotBlank
     @Column(nullable = false)
-    private String specialization; // e.g., Yoga, Strength, Cardio
+    private String specialization;
 
     @DecimalMin("0.0") @DecimalMax("5.0")
     @Column(nullable = false)
@@ -48,6 +45,7 @@ public class Trainer {
     private String profileImageUrl;
 
     @Column(name = "is_available", nullable = false)
+    @Builder.Default  // ← ADD THIS
     private Boolean isAvailable = true;
 
     @OneToOne(fetch = FetchType.LAZY)

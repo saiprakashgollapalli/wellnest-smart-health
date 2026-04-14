@@ -26,9 +26,16 @@ import TrainersPage from "./pages/TrainersPage";
 import TrainerProfilePage from "./pages/TrainerProfilePage";
 
 import SessionsPage from "./pages/SessionsPage";
+import TrainerSessionsPage from "./pages/TrainerSessionsPage";
 import AICoachPage from "./pages/AICoachPage";
 
 import Layout from "./pages/Layout";
+
+/* ---------------- NEW RBAC PAGES ---------------- */
+import AdminPanel from "./pages/AdminPanel";
+import TrainerPanel from "./pages/TrainerPanel";
+import TrainerProfileForm from './pages/TrainerProfileForm';
+import TrainerDashboard from './pages/TrainerDashboard';
 
 /* ---------------- PROTECTED ROUTE ---------------- */
 
@@ -93,15 +100,25 @@ function AppRoutes() {
         <Route path="/sleep" element={<SleepPage />} />
         <Route path="/water" element={<WaterIntakePage />} />
 
-        <Route path="/blogs" element={<BlogPage />} />
-        <Route path="/blogs/:id" element={<BlogDetail />} />
-
+        {/* Trainers Routes */}
         <Route path="/trainers" element={<TrainersPage />} />
         <Route path="/trainers/:id" element={<TrainerProfilePage />} />
 
         <Route path="/sessions" element={<SessionsPage />} />
-
+        <Route path="/trainer-sessions" element={<TrainerSessionsPage />} />
         <Route path="/ai-coach" element={<AICoachPage />} />
+
+        {/* Blog routes */}
+        <Route path="/blogs" element={<BlogPage />} />
+        <Route path="/blogs/:id" element={<BlogDetail />} />
+
+        {/* RBAC Routes */}
+        <Route path="/trainer" element={<TrainerPanel />} />
+        <Route path="/admin" element={<AdminPanel />} />
+
+        {/* NEW: Trainer Profile Routes - MUST be inside Layout */}
+        <Route path="/trainer-profile" element={<TrainerProfileForm />} />
+        <Route path="/trainer-dashboard" element={<TrainerDashboard />} />
 
       </Route>
 
@@ -118,9 +135,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-
         <AppRoutes />
-
         <Toaster
           position="top-right"
           toastOptions={{
@@ -139,7 +154,6 @@ export default function App() {
             },
           }}
         />
-
       </BrowserRouter>
     </AuthProvider>
   );
